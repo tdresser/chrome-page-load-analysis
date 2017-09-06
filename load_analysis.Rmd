@@ -1,0 +1,37 @@
+---
+title: "Page Load Analysis"
+author: "progressive-web-metrics@chromium.org"
+date: "September 6, 2017"
+output: 
+  html_document:
+    fig_width: 12
+    fig_height: 8
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
+source('main.R')
+```
+
+## Overall Distributions
+
+```{r, echo=FALSE, warning=FALSE}
+plot_totals_violin
+```
+
+## Time To Consistently Interactive
+
+Means, warm vs cold.
+```{r echo=FALSE, warning=FALSE}
+ggplotly(plot_ci_warm_vs_cold, tooltip="text")
+```
+
+Quantiles.
+```{r echo=FALSE, warning=FALSE}
+ggplotly(plot_ci, tooltip = "text")
+```
+
+Normalized, by quantiles.
+```{r echo=FALSE, warning=FALSE}
+ggplotly(plot_ci_normalized, tooltip="text")
+```
