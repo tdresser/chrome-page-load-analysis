@@ -7,15 +7,12 @@ library(gtools)
 
 source("breakdown_colors.R")
 
-# TODO - graph startup against total - startup
-
-
 df <- read_csv('important_timestamps.csv', col_types=cols(
   site=col_character(), 
   cache_temperature=readr::col_factor(c("pcv1-warm", "pcv1-cold")), 
   .default=col_number()))
 
-# sort(colnames(df))
+#sort(colnames(df))
 
 organized <- df %>% 
   gather(key, value, -cache_temperature, -site) %>% 
@@ -71,3 +68,25 @@ plot_ci_normalized <- ci_normalized %>% ggplot(aes(x=quantiles, y=value, fill=br
                                         text=sprintf("breakdown: %s<br> value: %f%%", breakdown, value*100))) + 
   geom_bar(stat="identity") +
   scale_fill_manual(values=breakdown_colors)
+
+# Startup vs Total for TTCI
+ttci_breakdown_comparisons <- breakdowns_together %>% 
+  filter(start=="nav", end=="ConsistentlyInteractiveBreakdown")
+
+plot_ttci_startup_vs_rest <- ttci_breakdown_comparisons %>% 
+  ggplot(aes(x=startup, y=total-startup, label=site, color=script_execute)) +
+  geom_point(alpha=1) +
+  facet_wrap(~cache_temperature) +
+  scale_x_log10() +
+  scale_y_log10() +
+  scale_color_continuous(trans="log10")
+ggplotly(plot_ttci_startup_vs_rest)
+
+# Total vs Script Execute for TTCI
+plot_ttci_script_execute_vs_rest <- ttci_breakdown_comparisons %>% 
+  ggplot(aes(x=script_execute, y=total-startup, label=site)) +
+  geom_point(alpha=0.2) +
+  facet_wrap(~cache_temperature) +
+  scale_x_log10() +
+  scale_y_log10()
+ggplotly(plot_ttci_script_execute_vs_rest)
