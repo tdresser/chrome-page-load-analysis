@@ -21,7 +21,8 @@ organized <- df %>%
   mutate(start = as.factor(start),
          end = as.factor(end),
          breakdown=as.factor(breakdown), 
-         site=as.factor(site))
+         site=as.factor(site)) %>%
+  filter(!is.na(value))
 
 totals <- organized %>% filter(breakdown == "total", start=="nav") 
 
@@ -29,18 +30,26 @@ plot_totals_violin <- totals %>% ggplot(aes(cache_temperature, value)) +
   geom_violin() + 
   facet_wrap(~end) +
   scale_y_log10()
+plot_totals_violin
 
-ci <- organized %>% filter(start=="nav", end=="ConsistentlyInteractiveBreakdown", breakdown != "total", breakdown != "startup") 
-ci_means <- ci %>% group_by(cache_temperature, breakdown) %>% dplyr::summarize(value=mean(value, na.rm=TRUE))
+ci <- organized %>% filter(start=="nav", 
+                           end=="ConsistentlyInteractiveBreakdown", 
+                           breakdown != "total", 
+                           breakdown != "startup") 
+ci_means <- ci %>% 
+  group_by(cache_temperature, breakdown) %>% 
+  dplyr::summarize(value=mean(value, na.rm=TRUE))
 
 plot_ci_warm_vs_cold <- ci_means %>% ggplot(aes(x=cache_temperature, y=value, fill=breakdown, 
-                                                text=sprintf("breakdown: %s<br> value: %f", breakdown, value))) + 
+                                                text=sprintf("breakdown: %s<br>value: %f", breakdown, value))) + 
   geom_bar(stat="identity") +
   ylim(0, NA) +
   scale_fill_manual(values=breakdown_colors)
+ggplotly(plot_ci_warm_vs_cold, tooltip="text")
+
 
 breakdowns_together <- organized %>% spread(breakdown, value)
-quantiles <- seq(0,1,by=0.1)
+quantiles <- seq(0,0.9,by=0.1)
 breakdowns_together$quantiles <- quantcut(breakdowns_together$total, quantiles)
 levels(breakdowns_together$quantiles) <- quantiles
 
@@ -55,13 +64,15 @@ by_quantiles_gathered <- by_quantiles %>%
 ci <- by_quantiles_gathered %>% filter(start=="nav", 
                                        end=="ConsistentlyInteractiveBreakdown",
                                        cache_temperature=="pcv1-warm", 
-                                       breakdown != "startup",
+                                       #breakdown != "startup",
                                        breakdown != "blocked_on_network")  #TODO - enable blocked_on_network
 
 plot_ci <- ci %>% ggplot(aes(x=quantiles, y=value, fill=breakdown, 
                              text=sprintf("breakdown: %s<br> value: %f", breakdown, value))) + 
   geom_bar(stat="identity") +
   scale_fill_manual(values=breakdown_colors)
+
+ggplotly(plot_ci)
 
 ci_normalized <- ci %>% group_by(quantiles) %>% mutate(value=value/sum(value, omit.na=TRUE))
 plot_ci_normalized <- ci_normalized %>% ggplot(aes(x=quantiles, y=value, fill=breakdown, 
@@ -90,3 +101,13 @@ plot_ttci_script_execute_vs_rest <- ttci_breakdown_comparisons %>%
   scale_x_log10() +
   scale_y_log10()
 ggplotly(plot_ttci_script_execute_vs_rest)
+
+
+p <- ttci_breakdown_comparisons %>% 
+  ggplot(aes(x=total, y=v8_runtime, label=site)) +
+  geom_point(alpha=0.2) +
+  facet_wrap(~cache_temperature) #+
+  #scale_x_log10() +
+  #scale_y_log10()
+p
+ggplotly(p)
