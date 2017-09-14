@@ -14,11 +14,13 @@ df <- read_csv('important_timestamps.csv', col_types=cols(
 
 #sort(colnames(df))
 
+start_timestamps <- c('nav', 'firstPaint', 'firstContentfulPaint', 'firstMeaningfulPaint', 'firstInteractive', 'consistentlyInteractive')
+
 organized <- df %>% 
   gather(key, value, -cache_temperature, -site) %>% 
   separate(key, into=c("start", "end"), sep="To") %>%
   separate(end, into=c("end", "breakdown"), sep="-") %>%
-  mutate(start = as.factor(start),
+  mutate(start = factor(start, start_timestamps),
          end = as.factor(end),
          breakdown=as.factor(breakdown), 
          site=as.factor(site)) %>%
@@ -111,3 +113,24 @@ p <- ttci_breakdown_comparisons %>%
   #scale_y_log10()
 p
 ggplotly(p)
+
+
+## Broken down by important times.
+important_times <- breakdowns_together %>% filter(
+  start == 'nav' & end == 'FirstPaintBreakdown' |
+  start == 'firstPaint' & end == 'FirstContentfulPaintBreakdown' |
+  start == 'firstContentfulPaint' & end == 'FirstMeaningfulPaintBreakdown' |
+  start == 'firstMeaningfulPaint' & end == 'FirstInteractiveBreakdown' |
+  start == 'firstInteractive' & end == 'ConsistentlyInteractiveBreakdown') %>%
+  select(-end) %>%
+  group_by(start, cache_temperature) %>%
+  dplyr::summarise_at(vars(-site), funs(mean(., na.rm=TRUE))) %>%
+  gather(key, value, -cache_temperature, -start)
+
+
+plot_important_times <- important_times %>% ggplot(aes(x=start, y=value, fill=key)) +
+  geom_bar(stat="identity") +
+  scale_fill_manual(values=breakdown_colors) +
+  facet_wrap(~cache_temperature)
+
+ggplotly(plot_important_times)
