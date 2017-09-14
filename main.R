@@ -60,11 +60,13 @@ ggplotly(plot_ci_warm_vs_cold, tooltip="text")
 
 
 breakdowns_together <- organized %>% spread(breakdown, value)
-quantiles <- seq(0,1,by=0.1)
-breakdowns_together$quantiles <- quantcut(breakdowns_together$total, quantiles)
-levels(breakdowns_together$quantiles) <- quantiles
 
-by_quantiles <- breakdowns_together %>% 
+breakdowns_together_ci <- breakdowns_together %>% filter(start == "Navigation", end == "Consistently Interactive")
+quantiles <- seq(0,1,by=0.1)
+breakdowns_together_ci$quantiles <- quantcut(breakdowns_together_ci$total, quantiles)
+levels(breakdowns_together_ci$quantiles) <- quantiles
+
+by_quantiles <- breakdowns_together_ci %>% 
   group_by(quantiles, cache_temperature, start, end, is_cpu_time) %>% 
   dplyr::summarise_at(vars(-site), funs(mean(., na.rm=TRUE)))
 
@@ -72,10 +74,7 @@ by_quantiles_gathered <- by_quantiles %>%
   gather(breakdown, value, -cache_temperature, -quantiles, -start, -end, -is_cpu_time) %>%
   filter(breakdown != "total")
 
-ci <- by_quantiles_gathered %>% filter(start=="Navigation", 
-                                       end=="Consistently Interactive",
-                                       #breakdown != "startup",
-                                       breakdown != "blocked_on_network")  #TODO - enable blocked_on_network
+ci <- by_quantiles_gathered %>% filter(breakdown != "blocked_on_network")  #TODO - enable blocked_on_network
 
 plot_ci <- ci %>% ggplot(aes(x=quantiles, y=value, fill=breakdown, 
                              text=sprintf("breakdown: %s<br>value: %f", breakdown, value))) + 
@@ -86,11 +85,13 @@ plot_ci <- ci %>% ggplot(aes(x=quantiles, y=value, fill=breakdown,
 
 ggplotly(plot_ci, tooltip="text")
 
-ci_normalized <- ci %>% group_by(quantiles) %>% mutate(value=value/sum(value, omit.na=TRUE))
+ci_normalized <- ci %>% group_by(quantiles) %>% mutate(value=value/sum(value, na.rm=TRUE))
 plot_ci_normalized <- ci_normalized %>% ggplot(aes(x=quantiles, y=value, fill=breakdown, 
                                         text=sprintf("breakdown: %s<br>value: %f%%", breakdown, value*100))) + 
   geom_bar(stat="identity") +
-  scale_fill_manual(values=breakdown_colors)
+  scale_fill_manual(values=breakdown_colors) +
+  facet_grid(is_cpu_time ~ cache_temperature) +
+  labs(title = "Time To Consistently Interactive — Normalized Contributors by Quantile", x="Quantiles", y="Milliseconds")
 
 ggplotly(plot_ci_normalized, tooltip="text")
 
