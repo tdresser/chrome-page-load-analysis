@@ -13,7 +13,7 @@ source('main.R')
 ## Overall Distributions
 
 ```{r, echo=FALSE, warning=FALSE}
-plot_totals_violin +
+plot_totals_jitter +
   theme(strip.text.x = element_text(size = 6))
 ```
 
