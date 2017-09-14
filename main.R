@@ -26,7 +26,7 @@ organized <- df %>%
          is_cpu_time = as.factor(!is.na(is_cpu_time)),
          breakdown=as.factor(breakdown), 
          site=as.factor(site)) %>%
-  filter(!is.na(value))
+  filter(!is.na(value), value != 0)
 
 levels(organized$cache_temperature) <- c("Warm", "Cold")
 levels(organized$start) <- friendly_timestamps

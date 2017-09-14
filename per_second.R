@@ -24,7 +24,7 @@ per_second_organized <- per_second_df %>%
          is_cpu_time = as.factor(!is.na(is_cpu_time)),
          start=as.numeric(start),
          end=as.numeric(end)) %>%
-  filter(!is.na(value))
+  filter(!is.na(value), value != 0)
 
 levels(per_second_organized$cache_temperature) <- c("Warm", "Cold")
 levels(per_second_organized$is_cpu_time) <- c("Wall Clock Time", "CPU Time")

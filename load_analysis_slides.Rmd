@@ -49,3 +49,7 @@ ggplotly(plot_ci_normalized, tooltip="text")
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(plot_important_times, tooltip="text")
 ```
+
+## Next Steps
+* Eliminate other.
+* Repeat for non-page load?
