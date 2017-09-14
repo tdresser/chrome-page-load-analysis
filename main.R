@@ -31,7 +31,8 @@ totals <- organized %>% filter(breakdown == "total", start=="nav")
 plot_totals_violin <- totals %>% ggplot(aes(cache_temperature, value)) + 
   geom_violin() + 
   facet_wrap(~end) +
-  scale_y_log10()
+  scale_y_log10() +
+  labs(title="Test title", x="Cache temperature", y="Milliseconds")
 plot_totals_violin
 
 ci <- organized %>% filter(start=="nav", 

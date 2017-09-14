@@ -35,10 +35,11 @@ per_second_breakdowns_together <- per_second_organized %>%
 per_second <- per_second_breakdowns_together %>%
   group_by(start, end, cache_temperature, is_cpu_time) %>%
   dplyr::summarise_at(vars(-site), funs(mean(., na.rm=TRUE))) %>%
-  gather(key, value, -start, -cache_temperature, -end, -is_cpu_time)
+  gather(key, value, -start, -cache_temperature, -end, -is_cpu_time) %>%
+  filter(key != 'total')
 
 plot_important_times <- per_second %>% ggplot(aes(x=start, y=value, fill=key)) +
   geom_bar(stat="identity") +
   scale_fill_manual(values=breakdown_colors) +
-  facet_wrap(~cache_temperature)
+  facet_grid(~cache_temperature~is_cpu_time)
 ggplotly(plot_important_times)
