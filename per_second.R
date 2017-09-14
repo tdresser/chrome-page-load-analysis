@@ -13,7 +13,7 @@ per_second_df <- read_csv('per_second.csv', col_types=cols(
   cache_temperature=readr::col_factor(c("pcv1-warm", "pcv1-cold")), 
   .default=col_number()))
 
-sort(colnames(per_second_df))
+# sort(colnames(per_second_df))
 
 per_second_organized <- per_second_df %>%
   gather(key, value, -cache_temperature, -site) %>%
@@ -21,10 +21,13 @@ per_second_organized <- per_second_df %>%
                  regex = "nav([0-9]*)secTo([0-9]*)secBreakdown(CpuTime)?-(.*)", convert=TRUE, remove=TRUE) %>%
   mutate(breakdown=as.factor(breakdown), 
          site=as.factor(site),
-         is_cpu_time = !is.na(is_cpu_time),
+         is_cpu_time = as.factor(!is.na(is_cpu_time)),
          start=as.numeric(start),
          end=as.numeric(end)) %>%
   filter(!is.na(value))
+
+levels(per_second_organized$cache_temperature) <- c("Warm", "Cold")
+levels(per_second_organized$is_cpu_time) <- c("Wall Clock Time", "CPU Time")
 
 per_second_breakdowns_together <- per_second_organized %>% 
   filter(start < 30) %>% 
@@ -41,5 +44,6 @@ per_second <- per_second_breakdowns_together %>%
 plot_important_times <- per_second %>% ggplot(aes(x=start, y=value, fill=key)) +
   geom_bar(stat="identity") +
   scale_fill_manual(values=breakdown_colors) +
-  facet_grid(~cache_temperature~is_cpu_time)
+  facet_grid(~cache_temperature~is_cpu_time) +
+  labs(title="Contributors over time.", x="Time in Seconds", y="Milliseconds")
 ggplotly(plot_important_times)

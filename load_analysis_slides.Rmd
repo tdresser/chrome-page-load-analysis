@@ -1,7 +1,7 @@
 ---
-title: "Page Load Analysis | A"
-author: "progressive-web-metrics@chromium.org"
-date: "September 6, 2017"
+title: "Page Load Analysis\nBlinkOn 8"
+author: "tdresser@chromium.org"
+date: "September 14, 2017"
 output: ioslides_presentation
 ---
 
@@ -11,9 +11,18 @@ source('main.R')
 source('per_second.R')
 ```
 
-# Test
+## Objective
+* Find Chrome and Website bugs based on new insight.
+* Understand Page Load performance at scale.
+* Identify weaknesses in our metrics.
 
-## Overall Distributions
+## Gathering Data
+* Load the Alexa top 10k on Nexus 5's.
+* Simulate 3G network.
+* Both warm & cold Page loads.
+* Reasonably detailed main thread attribution.
+
+## Overall Distribution
 
 ```{r, echo=FALSE, warning=FALSE}
 ggplotly(plot_totals_jitter +
@@ -22,17 +31,16 @@ ggplotly(plot_totals_jitter +
 
 ## Time To Consistently Interactive
 
-Means, warm vs cold.
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(plot_ci_warm_vs_cold, tooltip="text")
 ```
 
-## Quantiles
+## Time To Consistently Interactive | Quantiles
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(plot_ci, tooltip = "text")
 ```
 
-## Normalized by quantiles
+## Time To Consistently Interactive | Normalized by quantiles
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(plot_ci_normalized, tooltip="text")
 ```
