@@ -1,5 +1,5 @@
 ---
-title: "Page Load Analysis"
+title: "Page Load Analysis | A"
 author: "progressive-web-metrics@chromium.org"
 date: "September 6, 2017"
 output: ioslides_presentation
@@ -8,13 +8,16 @@ output: ioslides_presentation
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
 source('main.R')
+source('per_second.R')
 ```
+
+# Test
 
 ## Overall Distributions
 
 ```{r, echo=FALSE, warning=FALSE}
-plot_totals_jitter +
-  theme(strip.text.x = element_text(size = 6))
+ggplotly(plot_totals_jitter +
+  theme(strip.text.x = element_text(size = 6), axis.title = element_text(margin=c(50, 50, 50, 50))), tooltip="text")
 ```
 
 ## Time To Consistently Interactive
@@ -25,13 +28,16 @@ ggplotly(plot_ci_warm_vs_cold, tooltip="text")
 ```
 
 ## Quantiles
-Quantiles.
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(plot_ci, tooltip = "text")
 ```
 
 ## Normalized by quantiles
-Normalized, by quantiles.
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(plot_ci_normalized, tooltip="text")
+```
+
+## Per Second
+```{r echo=FALSE, warning=FALSE}
+ggplotly(plot_important_times, tooltip="text")
 ```

@@ -43,18 +43,20 @@ plot_totals_violin <- totals %>% ggplot(aes(cache_temperature, value)) +
 plot_totals_violin
 
 plot_totals_jitter <- totals %>% ggplot(aes(cache_temperature, value, text=sprintf("site: %s<br>value: %f", site, value))) + 
-  geom_jitter(alpha=0.2) + 
+  geom_jitter(alpha=0.1, size=0.3) + 
   facet_grid(is_cpu_time ~ end) +
   scale_y_log10() +
-  labs(title="Totals per point in time", x="Cache temperature", y="Milliseconds")
-ggplotly(plot_totals_jitter, tooltip="text")
+  labs(title="Totals per point in time", x="\n\nCache temperature", y="Milliseconds\n")
+
+ggplotly(plot_totals_jitter +
+           theme(strip.text.x = element_text(size = 6)), tooltip="text")
 
 ci <- organized %>% filter(start=="Navigation", 
                            end=="Consistently Interactive", 
                            breakdown != "total", 
                            breakdown != "startup") 
 ci_means <- ci %>% 
-  group_by(cache_temperature, breakdown) %>% 
+  group_by(cache_temperature, breakdown, is_cpu_time) %>% 
   dplyr::summarize(value=mean(value, na.rm=TRUE))
 
 plot_ci_warm_vs_cold <- ci_means %>% ggplot(aes(x=cache_temperature, y=value, fill=breakdown, 
@@ -62,7 +64,8 @@ plot_ci_warm_vs_cold <- ci_means %>% ggplot(aes(x=cache_temperature, y=value, fi
   geom_bar(stat="identity") +
   ylim(0, NA) +
   scale_fill_manual(values=breakdown_colors) +
-  labs(title="Time To Consistently Interactive — Mean Contributors", x="Cache Temperature", y="Milliseconds")
+  labs(title="Time To Consistently Interactive — Mean Contributors", x="Cache Temperature", y="Milliseconds") +
+  facet_grid(is_cpu_time ~ .)
 ggplotly(plot_ci_warm_vs_cold, tooltip="text")
 
 
@@ -102,41 +105,6 @@ plot_ci_normalized <- ci_normalized %>% ggplot(aes(x=quantiles, y=value, fill=br
 
 ggplotly(plot_ci_normalized, tooltip="text")
 
-# Startup vs Total for TTCI
-if(FALSE) {
-ttci_breakdown_comparisons <- breakdowns_together %>% 
-  filter(start=="nav", end=="ConsistentlyInteractiveBreakdown")
-
-plot_ttci_startup_vs_rest <- ttci_breakdown_comparisons %>% 
-  ggplot(aes(x=startup, y=total-startup, label=site, color=script_execute)) +
-  geom_point(alpha=1) +
-  facet_wrap(~cache_temperature) +
-  scale_x_log10() +
-  scale_y_log10() +
-  scale_color_continuous(trans="log10")
-ggplotly(plot_ttci_startup_vs_rest)
-
-# Total vs Script Execute for TTCI
-plot_ttci_script_execute_vs_rest <- ttci_breakdown_comparisons %>% 
-  ggplot(aes(x=script_execute, y=total-startup, label=site)) +
-  geom_point(alpha=0.2) +
-  facet_wrap(~cache_temperature) +
-  scale_x_log10() +
-  scale_y_log10()
-ggplotly(plot_ttci_script_execute_vs_rest)
-
-
-p <- ttci_breakdown_comparisons %>% 
-  ggplot(aes(x=total, y=v8_runtime, label=site)) +
-  geom_point(alpha=0.2) +
-  facet_wrap(~cache_temperature) #+
-  #scale_x_log10() +
-  #scale_y_log10()
-p
-ggplotly(p)
-}
-
-
 ## Broken down by important times.
 important_times <- breakdowns_together %>% filter(
   start == 'Navigation' & end == 'First Paint' |
@@ -158,3 +126,38 @@ plot_important_times <- important_times %>% ggplot(aes(x=end, y=value, fill=brea
   labs(title="Mean Contributors", x="End point", y="Milliseconds")
 
 ggplotly(plot_important_times, tooltip="text")
+
+# Startup vs Total for TTCI
+if(FALSE) {
+  ttci_breakdown_comparisons <- breakdowns_together %>% 
+    filter(start=="nav", end=="ConsistentlyInteractiveBreakdown")
+  
+  plot_ttci_startup_vs_rest <- ttci_breakdown_comparisons %>% 
+    ggplot(aes(x=startup, y=total-startup, label=site, color=script_execute)) +
+    geom_point(alpha=1) +
+    facet_wrap(~cache_temperature) +
+    scale_x_log10() +
+    scale_y_log10() +
+    scale_color_continuous(trans="log10")
+  ggplotly(plot_ttci_startup_vs_rest)
+  
+  # Total vs Script Execute for TTCI
+  plot_ttci_script_execute_vs_rest <- ttci_breakdown_comparisons %>% 
+    ggplot(aes(x=script_execute, y=total-startup, label=site)) +
+    geom_point(alpha=0.2) +
+    facet_wrap(~cache_temperature) +
+    scale_x_log10() +
+    scale_y_log10()
+  ggplotly(plot_ttci_script_execute_vs_rest)
+  
+  
+  p <- ttci_breakdown_comparisons %>% 
+    ggplot(aes(x=total, y=v8_runtime, label=site)) +
+    geom_point(alpha=0.2) +
+    facet_wrap(~cache_temperature) #+
+  #scale_x_log10() +
+  #scale_y_log10()
+  p
+  ggplotly(p)
+}
+
