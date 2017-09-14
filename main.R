@@ -14,29 +14,36 @@ df <- read_csv('important_timestamps.csv', col_types=cols(
 
 #sort(colnames(df))
 
-start_timestamps <- c('nav', 'firstPaint', 'firstContentfulPaint', 'firstMeaningfulPaint', 'firstInteractive', 'consistentlyInteractive')
+timestamps <- c('nav', 'firstPaint', 'firstContentfulPaint', 'firstMeaningfulPaint', 'firstInteractive', 'consistentlyInteractive')
+friendly_timestamps <- c('Navigation', 'First Paint', 'First Contentful Paint', 'First Meaningful Paint', 'First Interactive', 'Consistently Interactive')
 
 organized <- df %>% 
   gather(key, value, -cache_temperature, -site) %>% 
-  separate(key, into=c("start", "end"), sep="To") %>%
-  separate(end, into=c("end", "breakdown"), sep="-") %>%
-  mutate(start = factor(start, start_timestamps),
-         end = as.factor(end),
+  tidyr::extract("key", c("start", "end", "is_cpu_time", "breakdown"), 
+                 regex = "(.*)To(.*)Breakdown(CpuTime)?-(.*)", convert=TRUE, remove=TRUE) %>%
+  mutate(start = factor(tolower(start), tolower(timestamps)),
+         end = factor(tolower(end), tolower(timestamps)),
+         is_cpu_time = as.factor(!is.na(is_cpu_time)),
          breakdown=as.factor(breakdown), 
          site=as.factor(site)) %>%
   filter(!is.na(value))
 
-totals <- organized %>% filter(breakdown == "total", start=="nav") 
+levels(organized$cache_temperature) <- c("Warm", "Cold")
+levels(organized$start) <- friendly_timestamps
+levels(organized$end) <- friendly_timestamps
+levels(organized$is_cpu_time) <- c("Wall Clock Time", "CPU Time")
+
+totals <- organized %>% filter(breakdown == "total", start=="Navigation") 
 
 plot_totals_violin <- totals %>% ggplot(aes(cache_temperature, value)) + 
   geom_violin() + 
-  facet_wrap(~end) +
+  facet_grid(is_cpu_time ~ end) +
   scale_y_log10() +
-  labs(title="Test title", x="Cache temperature", y="Milliseconds")
+  labs(title="Totals per point in time", x="Cache temperature", y="Milliseconds")
 plot_totals_violin
 
-ci <- organized %>% filter(start=="nav", 
-                           end=="ConsistentlyInteractiveBreakdown", 
+ci <- organized %>% filter(start=="Navigation", 
+                           end=="Consistently Interactive", 
                            breakdown != "total", 
                            breakdown != "startup") 
 ci_means <- ci %>% 
@@ -47,41 +54,45 @@ plot_ci_warm_vs_cold <- ci_means %>% ggplot(aes(x=cache_temperature, y=value, fi
                                                 text=sprintf("breakdown: %s<br>value: %f", breakdown, value))) + 
   geom_bar(stat="identity") +
   ylim(0, NA) +
-  scale_fill_manual(values=breakdown_colors)
+  scale_fill_manual(values=breakdown_colors) +
+  labs(title="Time To Consistently Interactive — Mean Contributors", x="Cache Temperature", y="Milliseconds")
 ggplotly(plot_ci_warm_vs_cold, tooltip="text")
 
 
 breakdowns_together <- organized %>% spread(breakdown, value)
-quantiles <- seq(0,0.9,by=0.1)
+quantiles <- seq(0,1,by=0.1)
 breakdowns_together$quantiles <- quantcut(breakdowns_together$total, quantiles)
 levels(breakdowns_together$quantiles) <- quantiles
 
 by_quantiles <- breakdowns_together %>% 
-  group_by(quantiles, cache_temperature, start, end) %>% 
+  group_by(quantiles, cache_temperature, start, end, is_cpu_time) %>% 
   dplyr::summarise_at(vars(-site), funs(mean(., na.rm=TRUE)))
 
 by_quantiles_gathered <- by_quantiles %>% 
-  gather(breakdown, value, -cache_temperature, -quantiles, -start, -end) %>%
+  gather(breakdown, value, -cache_temperature, -quantiles, -start, -end, -is_cpu_time) %>%
   filter(breakdown != "total")
 
-ci <- by_quantiles_gathered %>% filter(start=="nav", 
-                                       end=="ConsistentlyInteractiveBreakdown",
-                                       cache_temperature=="pcv1-warm", 
+ci <- by_quantiles_gathered %>% filter(start=="Navigation", 
+                                       end=="Consistently Interactive",
                                        #breakdown != "startup",
                                        breakdown != "blocked_on_network")  #TODO - enable blocked_on_network
 
 plot_ci <- ci %>% ggplot(aes(x=quantiles, y=value, fill=breakdown, 
-                             text=sprintf("breakdown: %s<br> value: %f", breakdown, value))) + 
+                             text=sprintf("breakdown: %s<br>value: %f", breakdown, value))) + 
   geom_bar(stat="identity") +
-  scale_fill_manual(values=breakdown_colors)
+  scale_fill_manual(values=breakdown_colors) +
+  facet_grid(is_cpu_time ~ cache_temperature) +
+  labs(title = "Time To Consistently Interactive — Contributors by Quantile", x="Quantiles", y="Milliseconds")
 
-ggplotly(plot_ci)
+ggplotly(plot_ci, tooltip="text")
 
 ci_normalized <- ci %>% group_by(quantiles) %>% mutate(value=value/sum(value, omit.na=TRUE))
 plot_ci_normalized <- ci_normalized %>% ggplot(aes(x=quantiles, y=value, fill=breakdown, 
-                                        text=sprintf("breakdown: %s<br> value: %f%%", breakdown, value*100))) + 
+                                        text=sprintf("breakdown: %s<br>value: %f%%", breakdown, value*100))) + 
   geom_bar(stat="identity") +
   scale_fill_manual(values=breakdown_colors)
+
+ggplotly(plot_ci_normalized, tooltip="text")
 
 # Startup vs Total for TTCI
 ttci_breakdown_comparisons <- breakdowns_together %>% 
