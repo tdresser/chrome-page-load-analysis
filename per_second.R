@@ -8,6 +8,8 @@ library(gtools)
 
 source("breakdown_colors.R")
 
+options(scipen=10000)
+
 per_second_df <- read_csv('per_second.csv', col_types=cols(
   site=col_character(), 
   cache_temperature=readr::col_factor(c("pcv1-warm", "pcv1-cold")), 
@@ -23,14 +25,16 @@ per_second_organized <- per_second_df %>%
          site=as.factor(site),
          is_cpu_time = as.factor(!is.na(is_cpu_time)),
          start=as.numeric(start),
-         end=as.numeric(end)) %>%
+         end=as.numeric(end),
+         value = value / 1000) %>%
   filter(!is.na(value), value != 0)
 
 levels(per_second_organized$cache_temperature) <- c("Warm", "Cold")
+per_second_organized$cache_temperature <- factor(per_second_organized$cache_temperature, levels=c("Cold", "Warm"))
 levels(per_second_organized$is_cpu_time) <- c("Wall Clock Time", "CPU Time")
 
 per_second_breakdowns_together <- per_second_organized %>% 
-  filter(start < 30) %>% 
+  filter(start < 60) %>% 
   group_by(site, cache_temperature, start, end, is_cpu_time, breakdown) %>% 
   dplyr::summarize(value=mean(value))  %>% # Where are the duplicates coming from?
   spread(breakdown, value)
@@ -38,12 +42,12 @@ per_second_breakdowns_together <- per_second_organized %>%
 per_second <- per_second_breakdowns_together %>%
   group_by(start, end, cache_temperature, is_cpu_time) %>%
   dplyr::summarise_at(vars(-site), funs(mean(., na.rm=TRUE))) %>%
-  gather(key, value, -start, -cache_temperature, -end, -is_cpu_time) %>%
-  filter(key != 'total')
+  gather(breakdown, value, -start, -cache_temperature, -end, -is_cpu_time) %>%
+  filter(breakdown != 'total')
 
-plot_important_times <- per_second %>% ggplot(aes(x=start, y=value, fill=key)) +
+plot_important_times <- per_second %>% ggplot(aes(x=start, y=value, fill=breakdown, text=sprintf("breakdown: %s<br>value: %f", breakdown, value))) +
   geom_bar(stat="identity") +
   scale_fill_manual(values=breakdown_colors) +
   facet_grid(~cache_temperature~is_cpu_time) +
-  labs(title="Contributors over time.", x="Time in Seconds", y="Milliseconds")
+  labs(title="Mean Contributors over time.", x="Time in Seconds", y="Seconds")
 ggplotly(plot_important_times)

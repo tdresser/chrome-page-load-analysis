@@ -7,6 +7,8 @@ library(gtools)
 
 source("breakdown_colors.R")
 
+options(scipen=10000)
+
 df <- read_csv('important_timestamps.csv', col_types=cols(
   site=col_character(), 
   cache_temperature=readr::col_factor(c("pcv1-warm", "pcv1-cold")), 
@@ -25,10 +27,12 @@ organized <- df %>%
          end = factor(tolower(end), tolower(timestamps)),
          is_cpu_time = as.factor(!is.na(is_cpu_time)),
          breakdown=as.factor(breakdown), 
-         site=as.factor(site)) %>%
+         site=as.factor(site),
+         value = value / 1000) %>%
   filter(!is.na(value), value != 0)
 
 levels(organized$cache_temperature) <- c("Warm", "Cold")
+organized$cache_temperature <- factor(organized$cache_temperature, levels=c("Cold", "Warm"))
 levels(organized$start) <- friendly_timestamps
 levels(organized$end) <- friendly_timestamps
 levels(organized$is_cpu_time) <- c("Wall Clock Time", "CPU Time")
@@ -39,14 +43,14 @@ plot_totals_violin <- totals %>% ggplot(aes(cache_temperature, value)) +
   geom_violin() + 
   facet_grid(is_cpu_time ~ end) +
   scale_y_log10() +
-  labs(title="Totals per point in time", x="Cache temperature", y="Milliseconds")
+  labs(title="Totals per point in time", x="Cache temperature", y="Seconds")
 plot_totals_violin
 
 plot_totals_jitter <- totals %>% ggplot(aes(cache_temperature, value, text=sprintf("site: %s<br>value: %f", site, value))) + 
   geom_jitter(alpha=0.1, size=0.3) + 
   facet_grid(is_cpu_time ~ end) +
   scale_y_log10() +
-  labs(title="Totals per point in time", x="\n\nCache temperature", y="Milliseconds\n")
+  labs(title="Totals per point in time", x="\n\nCache temperature", y="Seconds\n")
 
 ggplotly(plot_totals_jitter +
            theme(strip.text.x = element_text(size = 6)), tooltip="text")
@@ -63,7 +67,7 @@ plot_ci_warm_vs_cold <- ci_means %>% ggplot(aes(x=cache_temperature, y=value, fi
   geom_bar(stat="identity") +
   ylim(0, NA) +
   scale_fill_manual(values=breakdown_colors) +
-  labs(title="Time To Consistently Interactive — Mean Contributors", x="Cache Temperature", y="Milliseconds") +
+  labs(title="Time To Consistently Interactive — Mean Contributors", x="Cache Temperature", y="Seconds") +
   facet_grid(is_cpu_time ~ .)
 ggplotly(plot_ci_warm_vs_cold, tooltip="text")
 
@@ -90,7 +94,7 @@ plot_ci <- ci %>% ggplot(aes(x=quantiles, y=value, fill=breakdown,
   geom_bar(stat="identity") +
   scale_fill_manual(values=breakdown_colors) +
   facet_grid(is_cpu_time ~ cache_temperature) +
-  labs(title = "Time To Consistently Interactive — Contributors by Quantile", x="Quantiles", y="Milliseconds")
+  labs(title = "Time To Consistently Interactive — Contributors by Quantile", x="Quantiles", y="Seconds")
 
 ggplotly(plot_ci, tooltip="text")
 
@@ -100,7 +104,7 @@ plot_ci_normalized <- ci_normalized %>% ggplot(aes(x=quantiles, y=value, fill=br
   geom_bar(stat="identity") +
   scale_fill_manual(values=breakdown_colors) +
   facet_grid(is_cpu_time ~ cache_temperature) +
-  labs(title = "Time To Consistently Interactive — Normalized Contributors by Quantile", x="Quantiles", y="Milliseconds")
+  labs(title = "Time To Consistently Interactive — Normalized Contributors by Quantile", x="Quantiles", y="Percent of time spent")
 
 ggplotly(plot_ci_normalized, tooltip="text")
 
@@ -122,7 +126,7 @@ plot_important_times <- important_times %>% ggplot(aes(x=end, y=value, fill=brea
   geom_bar(stat="identity") +
   scale_fill_manual(values=breakdown_colors) +
   facet_grid(is_cpu_time + cache_temperature ~ .) +
-  labs(title="Mean Contributors", x="End point", y="Milliseconds")
+  labs(title="Mean Contributors", x="End point", y="Seconds")
 
 ggplotly(plot_important_times, tooltip="text")
 

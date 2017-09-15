@@ -7,6 +7,7 @@ output: ioslides_presentation
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
+options(scipen=10000)
 source('main.R')
 source('per_second.R')
 ```
@@ -30,7 +31,8 @@ source('per_second.R')
 
 ```{r, echo=FALSE, warning=FALSE}
 ggplotly(plot_totals_jitter +
-  theme(strip.text.x = element_text(size = 6)), tooltip="text")
+  theme(strip.text.x = element_text(size = 7),
+        strip.text.y = element_text(size = 7)), tooltip="text")
 ```
 
 ## Time To Consistently Interactive
@@ -72,3 +74,11 @@ ProxyMain::BeginMainFrame::commit :  16127438.698
 ## Next Steps: Elimate Other
 * We need some better ways to keep trace event renaming from breaking metrics.
 * Contribute by adding your slices to the [user friendly category driver.](https://cs.chromium.org/chromium/src/third_party/catapult/tracing/tracing/extras/chrome/chrome_user_friendly_category_driver.html).
+
+## Next Steps: Improved Breakdowns
+* blocked\_on\_network should split out by type of resource.
+* Can script\_execute be split out via runtimeCallStats?
+* ???
+
+## Next Steps: Crazy Ideas
+* Label sites by framework
