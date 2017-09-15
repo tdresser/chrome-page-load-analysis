@@ -14,9 +14,19 @@ source('per_second.R')
 
 ## Goal of this talk
 * Convince you to consider investing in large scale lab based performance analysis.
-* TODO
+* Dig into some data.
 
-## Objective
+## Overall Distribution
+
+Why is consistently interactive so multi-modal?
+
+```{r, echo=FALSE, warning=FALSE}
+ggplotly(plot_totals_jitter +
+  theme(strip.text.x = element_text(size = 7),
+        strip.text.y = element_text(size = 7)), tooltip="text")
+```
+
+## Objective of this analysis.
 * Find Chrome and Website bugs based on new insight.
 * Understand Page Load performance at scale.
 * Identify weaknesses in our metrics.
@@ -26,14 +36,6 @@ source('per_second.R')
 * Simulate 3G network.
 * Both warm & cold Page loads.
 * Reasonably detailed main thread attribution.
-
-## Overall Distribution
-
-```{r, echo=FALSE, warning=FALSE}
-ggplotly(plot_totals_jitter +
-  theme(strip.text.x = element_text(size = 7),
-        strip.text.y = element_text(size = 7)), tooltip="text")
-```
 
 ## Time To Consistently Interactive
 
@@ -52,6 +54,7 @@ ggplotly(plot_ci_normalized, tooltip="text")
 ```
 
 ## Per Second
+What's with the weird dip in warm wall clock time?
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(plot_important_times, tooltip="text")
 ```
@@ -78,7 +81,10 @@ ProxyMain::BeginMainFrame::commit :  16127438.698
 ## Next Steps: Improved Breakdowns
 * blocked\_on\_network should split out by type of resource.
 * Can script\_execute be split out via runtimeCallStats?
+* Filter out 404s - maybe pick a better pageset?
 * ???
 
 ## Next Steps: Crazy Ideas
-* Label sites by framework
+* Label sites by framework.
+* Gather memory data as well.
+* Do the same thing, but for input.
