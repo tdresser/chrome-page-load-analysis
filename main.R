@@ -60,7 +60,7 @@ ci <- organized %>% filter(start=="Navigation",
                            breakdown != "total") 
 ci_means <- ci %>% 
   group_by(cache_temperature, breakdown, is_cpu_time) %>% 
-  dplyr::summarize(value=mean(value, na.rm=TRUE))
+  dplyr::summarize(value=mean(value))
 
 plot_ci_warm_vs_cold <- ci_means %>% ggplot(aes(x=cache_temperature, y=value, fill=breakdown, 
                                                 text=sprintf("breakdown: %s<br>value: %f", breakdown, value))) + 
@@ -73,15 +73,18 @@ ggplotly(plot_ci_warm_vs_cold, tooltip="text")
 
 
 breakdowns_together <- organized %>% spread(breakdown, value)
+breakdowns_together[is.na(breakdowns_together)] <- 0
 
 breakdowns_together_ci <- breakdowns_together %>% filter(start == "Navigation", end == "Consistently Interactive")
 quantiles <- seq(0,1,by=0.1)
 breakdowns_together_ci$quantiles <- quantcut(breakdowns_together_ci$total, quantiles)
 levels(breakdowns_together_ci$quantiles) <- quantiles
 
+
+
 by_quantiles <- breakdowns_together_ci %>% 
   group_by(quantiles, cache_temperature, start, end, is_cpu_time) %>% 
-  dplyr::summarise_at(vars(-site), funs(mean(., na.rm=TRUE)))
+  dplyr::summarise_at(vars(-site), funs(mean(.)))
 
 by_quantiles_gathered <- by_quantiles %>% 
   gather(breakdown, value, -cache_temperature, -quantiles, -start, -end, -is_cpu_time) %>%
@@ -98,7 +101,7 @@ plot_ci <- ci %>% ggplot(aes(x=quantiles, y=value, fill=breakdown,
 
 ggplotly(plot_ci, tooltip="text")
 
-ci_normalized <- ci %>% group_by(quantiles, cache_temperature, is_cpu_time) %>% mutate(value=value/sum(value, na.rm=TRUE))
+ci_normalized <- ci %>% group_by(quantiles, cache_temperature, is_cpu_time) %>% mutate(value=value/sum(value))
 plot_ci_normalized <- ci_normalized %>% ggplot(aes(x=quantiles, y=value, fill=breakdown, 
                                         text=sprintf("breakdown: %s<br>value: %f%%", breakdown, value*100))) + 
   geom_bar(stat="identity") +
@@ -116,7 +119,7 @@ important_times <- breakdowns_together %>% filter(
   start == 'First Meaningful Paint' & end == 'First Interactive' |
   start == 'First Interactive' & end == 'Consistently Interactive') %>%
   group_by(start, end, cache_temperature, is_cpu_time) %>%
-  dplyr::summarise_at(vars(-site), funs(mean(., na.rm=TRUE))) %>%
+  dplyr::summarise_at(vars(-site), funs(mean(.))) %>%
   gather(breakdown, value, -cache_temperature, -start, -is_cpu_time, -end)
 
 important_times <- important_times %>% filter(breakdown != "total")
@@ -126,7 +129,7 @@ plot_important_times <- important_times %>% ggplot(aes(x=end, y=value, fill=brea
   geom_bar(stat="identity") +
   scale_fill_manual(values=breakdown_colors) +
   facet_grid(is_cpu_time + cache_temperature ~ .) +
-  labs(title="Mean Contributors", x="End point", y="Seconds")
+  labs(title="Mean Contributors between Key Timestamps", x="End point", y="Seconds")
 
 ggplotly(plot_important_times, tooltip="text")
 

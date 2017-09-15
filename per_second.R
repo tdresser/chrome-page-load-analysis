@@ -39,7 +39,7 @@ per_second_breakdowns_together <- per_second_organized %>%
   dplyr::summarize(value=value)  %>% # Where are the duplicates coming from?
   spread(breakdown, value)
   
-# Mean fails when NAs are removed.
+# Mean fails when NAs are ignored
 per_second_breakdowns_together[is.na(per_second_breakdowns_together)] <- 0
 
 per_second <- per_second_breakdowns_together %>%
@@ -48,9 +48,9 @@ per_second <- per_second_breakdowns_together %>%
   gather(breakdown, value, -start, -cache_temperature, -end, -is_cpu_time) %>%
   filter(breakdown != 'total')
 
-plot_important_times <- per_second %>% ggplot(aes(x=start, y=value, fill=breakdown, text=sprintf("breakdown: %s<br>value: %f", breakdown, value))) +
+plot_per_second <- per_second %>% ggplot(aes(x=start, y=value, fill=breakdown, text=sprintf("breakdown: %s<br>value: %f", breakdown, value))) +
   geom_bar(stat="identity") +
   scale_fill_manual(values=breakdown_colors) +
   facet_grid(~cache_temperature~is_cpu_time) +
   labs(title="Mean Contributors over time.", x="Time in Seconds", y="Seconds")
-ggplotly(plot_important_times, tooltip="text")
+ggplotly(plot_per_second, tooltip="text")

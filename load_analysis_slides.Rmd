@@ -8,6 +8,7 @@ output: ioslides_presentation
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
 options(scipen=10000)
+knitr::opts_knit$set(verbose=TRUE)
 source('main.R')
 source('per_second.R')
 ```
@@ -17,8 +18,6 @@ source('per_second.R')
 * Dig into some data.
 
 ## Overall Distribution
-
-Why is consistently interactive so multi-modal?
 
 ```{r, echo=FALSE, warning=FALSE}
 ggplotly(plot_totals_jitter +
@@ -53,10 +52,16 @@ ggplotly(plot_ci, tooltip = "text")
 ggplotly(plot_ci_normalized, tooltip="text")
 ```
 
-## Per Second
-What's with the weird dip in warm wall clock time?
+## Important Timestamp Deltas
 ```{r echo=FALSE, warning=FALSE}
-ggplotly(plot_important_times, tooltip="text")
+ggplotly(plot_important_times, tooltip="text") + 
+  theme(strip.text.y = element_text(size = 7),
+        axis.text.x = element_text(size = 7))
+```
+
+## Per Second
+```{r echo=FALSE, warning=FALSE}
+ggplotly(plot_per_second, tooltip="text")
 ```
 
 ## Next Steps: Elimate Other
@@ -76,7 +81,16 @@ ProxyMain::BeginMainFrame::commit :  16127438.698
 
 ## Next Steps: Elimate Other
 * We need some better ways to keep trace event renaming from breaking metrics.
-* Contribute by adding your slices to the [user friendly category driver.](https://cs.chromium.org/chromium/src/third_party/catapult/tracing/tracing/extras/chrome/chrome_user_friendly_category_driver.html).
+* Contribute by adding your slices to the [user friendly category driver.](https://cs.chromium.org/chromium/src/third_party/catapult/tracing/tracing/extras/chrome/chrome_user_friendly_category_driver.html)
+```javascript
+const TITLES_FOR_USER_FRIENDLY_CATEGORY = {
+    composite: [
+      'CompositingInputsUpdater::update',
+      'ThreadProxy::SetNeedsUpdateLayers',
+      'LayerTreeHost::UpdateLayers::CalcDrawProps',
+      'UpdateLayerTree'
+    ]
+```
 
 ## Next Steps: Improved Breakdowns
 * blocked\_on\_network should split out by type of resource.
