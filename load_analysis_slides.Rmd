@@ -54,9 +54,9 @@ ggplotly(plot_ci_normalized, tooltip="text")
 
 ## Important Timestamp Deltas
 ```{r echo=FALSE, warning=FALSE}
-ggplotly(plot_important_times, tooltip="text") + 
-  theme(strip.text.y = element_text(size = 7),
-        axis.text.x = element_text(size = 7))
+ggplotly(plot_important_times + 
+           theme(strip.text.y = element_text(size = 7),
+                 axis.text.x = element_text(size = 6)), tooltip="text") 
 ```
 
 ## Per Second
@@ -90,6 +90,7 @@ const TITLES_FOR_USER_FRIENDLY_CATEGORY = {
       'LayerTreeHost::UpdateLayers::CalcDrawProps',
       'UpdateLayerTree'
     ]
+}
 ```
 
 ## Next Steps: Improved Breakdowns
