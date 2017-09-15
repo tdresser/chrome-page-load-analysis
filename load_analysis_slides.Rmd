@@ -11,6 +11,10 @@ source('main.R')
 source('per_second.R')
 ```
 
+## Goal of this talk
+* Convince you to consider investing in large scale lab based performance analysis.
+* TODO
+
 ## Objective
 * Find Chrome and Website bugs based on new insight.
 * Understand Page Load performance at scale.
@@ -26,7 +30,7 @@ source('per_second.R')
 
 ```{r, echo=FALSE, warning=FALSE}
 ggplotly(plot_totals_jitter +
-  theme(strip.text.x = element_text(size = 6), axis.title = element_text(margin=c(50, 50, 50, 50))), tooltip="text")
+  theme(strip.text.x = element_text(size = 6)), tooltip="text")
 ```
 
 ## Time To Consistently Interactive
@@ -50,6 +54,21 @@ ggplotly(plot_ci_normalized, tooltip="text")
 ggplotly(plot_important_times, tooltip="text")
 ```
 
-## Next Steps
-* Eliminate other.
-* Repeat for non-page load?
+## Next Steps: Elimate Other
+* [Issue](https://github.com/catapult-project/catapult/issues/3864).
+* Some [low hanging fruit](https://gist.github.com/deepanjanroy/84788dee9be12b01502a1708daf135da):
+
+```
+Slice Title: Total self time in ms across top 10k pages
+LocalFrameView::performLayout :  77859682.3385
+TaskQueueManager::RunTask :  45631790.6605
+Document::recalcStyle :  42088368.0356
+Document::rebuildLayoutTree :  23380524.8535
+LocalFrameView::prePaint :  22698465.596
+WebURLLoaderImpl::loadSynchronously :  19509370.842
+ProxyMain::BeginMainFrame::commit :  16127438.698
+```
+
+## Next Steps: Elimate Other
+* We need some better ways to keep trace event renaming from breaking metrics.
+* Contribute by adding your slices to the [user friendly category driver.](https://cs.chromium.org/chromium/src/third_party/catapult/tracing/tracing/extras/chrome/chrome_user_friendly_category_driver.html).

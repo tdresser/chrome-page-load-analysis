@@ -53,8 +53,7 @@ ggplotly(plot_totals_jitter +
 
 ci <- organized %>% filter(start=="Navigation", 
                            end=="Consistently Interactive", 
-                           breakdown != "total", 
-                           breakdown != "startup") 
+                           breakdown != "total") 
 ci_means <- ci %>% 
   group_by(cache_temperature, breakdown, is_cpu_time) %>% 
   dplyr::summarize(value=mean(value, na.rm=TRUE))
@@ -84,7 +83,7 @@ by_quantiles_gathered <- by_quantiles %>%
   gather(breakdown, value, -cache_temperature, -quantiles, -start, -end, -is_cpu_time) %>%
   filter(breakdown != "total")
 
-ci <- by_quantiles_gathered %>% filter(breakdown != "blocked_on_network")  #TODO - enable blocked_on_network
+ci <- by_quantiles_gathered
 
 plot_ci <- ci %>% ggplot(aes(x=quantiles, y=value, fill=breakdown, 
                              text=sprintf("breakdown: %s<br>value: %f", breakdown, value))) + 
@@ -116,7 +115,7 @@ important_times <- breakdowns_together %>% filter(
   dplyr::summarise_at(vars(-site), funs(mean(., na.rm=TRUE))) %>%
   gather(breakdown, value, -cache_temperature, -start, -is_cpu_time, -end)
 
-important_times <- important_times %>% filter(breakdown != "total", breakdown != "startup")
+important_times <- important_times %>% filter(breakdown != "total")
 
 
 plot_important_times <- important_times %>% ggplot(aes(x=end, y=value, fill=breakdown, text=sprintf("breakdown: %s<br>value: %f", breakdown, value))) +
