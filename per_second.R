@@ -36,7 +36,7 @@ levels(per_second_organized$is_cpu_time) <- c("Wall Clock Time", "CPU Time")
 per_second_breakdowns_together <- per_second_organized %>% 
   filter(start < 30) %>% 
   group_by(site, cache_temperature, start, end, is_cpu_time, breakdown) %>% 
-  dplyr::summarize(value=value)  %>% # Where are the duplicates coming from?
+  dplyr::summarize(value=mean(value))  %>% # Where are the duplicates coming from?
   spread(breakdown, value)
   
 # Mean fails when NAs are ignored
