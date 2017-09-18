@@ -39,14 +39,16 @@ levels(organized$is_cpu_time) <- c("Wall Clock Time", "CPU Time")
 
 totals <- organized %>% filter(breakdown == "total", start=="Navigation") 
 
+if(FALSE) {
 plot_totals_violin <- totals %>% ggplot(aes(cache_temperature, value)) + 
   geom_violin() + 
   facet_grid(is_cpu_time ~ end) +
   scale_y_log10() +
   labs(title="Totals per point in time", x="Cache temperature", y="Seconds")
 plot_totals_violin
+}
 
-plot_totals_jitter <- totals %>% ggplot(aes(cache_temperature, value, text=sprintf("site: %s<br>value: %f", site, value))) + 
+plot_totals_jitter <- totals %>% sample_frac(0.5) %>% ggplot(aes(cache_temperature, value, text=sprintf("site: %s<br>value: %f", site, value))) + 
   geom_jitter(alpha=0.1, size=0.3) + 
   facet_grid(is_cpu_time ~ end) +
   scale_y_log10() +
@@ -80,7 +82,13 @@ quantiles <- seq(0,1,by=0.1)
 breakdowns_together_ci$quantiles <- quantcut(breakdowns_together_ci$total, quantiles)
 levels(breakdowns_together_ci$quantiles) <- quantiles
 
+# Playing with quantiles
 
+#t <- breakdowns_together_ci %>% 
+#  group_by(is_cpu_time, cache_temperature, site, start, end) %>%
+#  dplyr::summarise(quantile = quantile(total))
+
+# End playing with quantiles
 
 by_quantiles <- breakdowns_together_ci %>% 
   group_by(quantiles, cache_temperature, start, end, is_cpu_time) %>% 
