@@ -70,8 +70,8 @@ breakdowns_together[is.na(breakdowns_together)] <- 0
 
 breakdowns_together_ci <- breakdowns_together %>% 
   filter(start == "Navigation", end == "Consistently Interactive") %>%
-  group_by(is_cpu_time, cache_temperature, site, start, end) %>%
-  mutate(quartile = ntile(total, 10))
+  group_by(is_cpu_time, cache_temperature, start, end) %>%
+  mutate(quantiles = ntile(total, 10) * 10)
 
 by_quantiles <- breakdowns_together_ci %>% 
   group_by(quantiles, cache_temperature, start, end, is_cpu_time) %>% 

@@ -14,7 +14,7 @@ source('per_second.R')
 ```
 
 ## Goal of this talk
-* Convince you to consider investing in large scale lab based performance analysis.
+* Convince you to invest in large scale lab based performance analysis.
 * Dig into some data.
 
 ## Overall Distribution
