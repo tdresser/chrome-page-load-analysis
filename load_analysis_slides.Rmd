@@ -2,7 +2,11 @@
 title: "Page Load Analysis\nBlinkOn 8"
 author: "tdresser@chromium.org"
 date: "September 14, 2017"
-output: ioslides_presentation
+output: 
+  ioslides_presentation:
+    widescreen: true
+    fig_width: 10
+    fig_height: 4.5
 ---
 
 ```{r setup, include=FALSE}
@@ -20,7 +24,14 @@ source('per_second.R')
 ## Overall Distribution
 
 ```{r, echo=FALSE, warning=FALSE}
-ggplotly(plot_totals_jitter +
+plot_totals_jitter +
+  theme(strip.text.x = element_text(size = 7),
+        strip.text.y = element_text(size = 7))
+```
+
+## Overall Distribution (Sampled)
+```{r, echo=FALSE, warning=FALSE}
+ggplotly(plot_totals_jitter_sampled +
   theme(strip.text.x = element_text(size = 7),
         strip.text.y = element_text(size = 7)), tooltip="text")
 ```
@@ -59,7 +70,7 @@ ggplotly(plot_important_times +
                  axis.text.x = element_text(size = 6)), tooltip="text") 
 ```
 
-## Per Second
+## Per Second Contributors
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(plot_per_second, tooltip="text")
 ```
@@ -70,13 +81,11 @@ ggplotly(plot_per_second, tooltip="text")
 
 ```
 Slice Title: Total self time in ms across top 10k pages
-LocalFrameView::performLayout :  77859682.3385
-TaskQueueManager::RunTask :  45631790.6605
-Document::recalcStyle :  42088368.0356
-Document::rebuildLayoutTree :  23380524.8535
-LocalFrameView::prePaint :  22698465.596
-WebURLLoaderImpl::loadSynchronously :  19509370.842
-ProxyMain::BeginMainFrame::commit :  16127438.698
+TaskQueueManager::RunTask : 45799357.7984
+LocalFrameView::prePaint : 22831219.588
+ProxyMain::BeginMainFrame::commit : 16157595.614
+TaskQueueManager::ProcessTaskFromWorkQueue : 16034099.1022
+V8.NewContext : 15784434.0443
 ```
 
 ## Next Steps: Elimate Other

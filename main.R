@@ -39,7 +39,13 @@ levels(organized$is_cpu_time) <- c("Wall Clock Time", "CPU Time")
 
 totals <- organized %>% filter(breakdown == "total", start=="Navigation") 
 
-plot_totals_jitter <- totals %>% sample_frac(0.1) %>% ggplot(aes(cache_temperature, value, text=sprintf("site: %s<br>value: %f", site, value))) + 
+plot_totals_jitter_sampled <- totals %>% sample_frac(0.1) %>% ggplot(aes(cache_temperature, value, text=sprintf("site: %s<br>value: %f", site, value))) + 
+  geom_jitter(alpha=0.1, size=0.3) + 
+  facet_grid(is_cpu_time ~ end) +
+  scale_y_log10() +
+  labs(title="Totals per point in time", x="\n\nCache temperature", y="Seconds\n")
+
+plot_totals_jitter <- totals %>% ggplot(aes(cache_temperature, value, text=sprintf("site: %s<br>value: %f", site, value))) + 
   geom_jitter(alpha=0.1, size=0.3) + 
   facet_grid(is_cpu_time ~ end) +
   scale_y_log10() +
