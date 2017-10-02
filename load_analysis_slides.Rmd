@@ -3,7 +3,7 @@ title: "Page Load Analysis\nBlinkOn 8"
 author: "tdresser@chromium.org"
 date: "September 14, 2017"
 output: 
-  ioslides_presentation:
+  slidy_presentation:
     widescreen: true
     fig_width: 10
     fig_height: 4.5
