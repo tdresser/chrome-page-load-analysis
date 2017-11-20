@@ -1,37 +1,67 @@
 ---
 title: "Page Load Analysis"
-author: "progressive-web-metrics@chromium.org"
-date: "September 6, 2017"
+author: "tdresser@chromium.org, maxlg@chromium.org, dproy@chromium.org"
+date: "September 14, 2017"
 output: 
   html_document:
-    fig_width: 12
-    fig_height: 8
+    fig_width: 10
+    fig_height: 7
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
+options(scipen=10000)
+knitr::opts_knit$set(verbose=TRUE)
 source('main.R')
+source('per_second.R')
 ```
 
-## Overall Distributions
+## Gathering Data
+* Load the Alexa top 10k on Nexus 5's.
+* Simulate 3G network.
+* Both warm & cold Page loads.
+* Reasonably detailed main thread attribution.
+
+## Overall Distribution
 
 ```{r, echo=FALSE, warning=FALSE}
-plot_totals_violin  
+plot_totals_jitter +
+  theme(strip.text.x = element_text(size = 7),
+        strip.text.y = element_text(size = 7))
+```
+
+## Overall Distribution (Sampled)
+```{r, echo=FALSE, warning=FALSE}
+ggplotly(plot_totals_jitter_sampled +
+  theme(strip.text.x = element_text(size = 7),
+        strip.text.y = element_text(size = 7)), tooltip="text")
 ```
 
 ## Time To Consistently Interactive
 
-Means, warm vs cold.
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(plot_ci_warm_vs_cold, tooltip="text")
 ```
 
-Quantiles.
+## Time To Consistently Interactive | Quantiles
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(plot_ci, tooltip = "text")
 ```
 
-Normalized, by quantiles.
+## Time To Consistently Interactive | Normalized by quantiles
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(plot_ci_normalized, tooltip="text")
 ```
+
+## Important Timestamp Deltas
+```{r echo=FALSE, warning=FALSE}
+ggplotly(plot_important_times + 
+           theme(strip.text.y = element_text(size = 7),
+                 axis.text.x = element_text(size = 6)), tooltip="text") 
+```
+
+## Per Second Contributors
+```{r echo=FALSE, warning=FALSE}
+ggplotly(plot_per_second, tooltip="text")
+```
+

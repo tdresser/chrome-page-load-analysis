@@ -1,8 +1,5 @@
 # This is a big enough data set that you may need to set `ulimit -s 1280000`.
-library(ggplot2)
-library(readr)
-library(tidyr)
-library(dplyr)
+library(tidyverse)
 library(plotly)
 library(gtools)
 
@@ -12,7 +9,7 @@ options(scipen=10000)
 
 per_second_df <- read_csv('per_second.csv', col_types=cols(
   site=col_character(), 
-  cache_temperature=readr::col_factor(c("pcv1-warm", "pcv1-cold")), 
+  cache_temperature=readr::col_factor(c("warm", "cold", "hot")), 
   .default=col_number()))
 
 # sort(colnames(per_second_df))
@@ -29,8 +26,8 @@ per_second_organized <- per_second_df %>%
          value = value / 1000) %>%
   filter(!is.na(value), value != 0)
 
-levels(per_second_organized$cache_temperature) <- c("Warm", "Cold")
-per_second_organized$cache_temperature <- factor(per_second_organized$cache_temperature, levels=c("Cold", "Warm"))
+levels(per_second_organized$cache_temperature) <- c("Warm", "Cold", "Hot")
+per_second_organized$cache_temperature <- factor(per_second_organized$cache_temperature, levels=c("Cold", "Warm", "Hot"))
 levels(per_second_organized$is_cpu_time) <- c("Wall Clock Time", "CPU Time")
 
 per_second_breakdowns_together <- per_second_organized %>% 
