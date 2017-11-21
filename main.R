@@ -11,6 +11,15 @@ df <- read_csv('important_timestamps.csv', col_types=cols(
   cache_temperature=readr::col_factor(c("warm", "cold", "hot")), 
   .default=col_number()))
 
+# Find cases where we're missing data for some sites.
+num_occurrences_of_site <- df %>% 
+  select(site) %>% 
+  group_by(site) %>% 
+  mutate(count=n())
+sites_to_drop <- num_occurrences_of_site[num_occurrences_of_site$count < 3,]
+
+df <- df %>% anti_join(sites_to_drop, by="site")
+
 timestamps <- c('nav', 'firstPaint', 'firstContentfulPaint', 'firstMeaningfulPaint', 'firstInteractive', 'consistentlyInteractive')
 friendly_timestamps <- c('Navigation', 'First Paint', 'First Contentful Paint', 'First Meaningful Paint', 'First Interactive', 'Consistently Interactive')
 
