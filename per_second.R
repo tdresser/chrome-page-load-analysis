@@ -2,6 +2,7 @@
 library(tidyverse)
 library(plotly)
 library(gtools)
+library(stringr)
 
 source("breakdown_colors.R")
 
@@ -12,9 +13,20 @@ per_second_df <- read_csv('per_second.csv', col_types=cols(
   cache_temperature=readr::col_factor(c("warm", "cold", "hot")), 
   .default=col_number()))
 
+filtered_columns <- c()
+all_names = names(per_second_df)
+sec_to_sec_names <- all_names[grepl("nav\\d+secTo\\d+sec", all_names)]
+for (name in sec_to_sec_names) {
+  first_num <- as.numeric(str_extract_all(name, "\\d+")[[1]][1])
+  if (first_num > 30) {
+    filtered_columns <- c(filtered_columns, name)
+  }
+}
+
+filtered_df <- per_second_df[ , -which(names(per_second_df) %in% filtered_columns)]
 # sort(colnames(per_second_df))
 
-per_second_organized <- per_second_df %>%
+per_second_organized <- filtered_df %>%
   gather(key, value, -cache_temperature, -site) %>%
   tidyr::extract("key", c("start", "end", "is_cpu_time", "breakdown"), 
                  regex = "nav([0-9]*)secTo([0-9]*)secBreakdown(CpuTime)?-(.*)", convert=TRUE, remove=TRUE) %>%
