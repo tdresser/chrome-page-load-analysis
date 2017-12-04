@@ -64,22 +64,6 @@ plot_totals_jitter <- totals %>% ggplot(aes(cache_temperature, value, text=sprin
 ggplotly(plot_totals_jitter +
            theme(strip.text.x = element_text(size = 6)), tooltip="text")
 
-ci <- organized %>% filter(start=="Navigation", 
-                           end=="Consistently Interactive", 
-                           breakdown != "total") 
-ci_means <- ci %>% 
-  group_by(cache_temperature, breakdown, is_cpu_time) %>% 
-  dplyr::summarize(value=mean(value))
-
-plot_ci_warm_vs_cold <- ci_means %>% ggplot(aes(x=cache_temperature, y=value, fill=breakdown, 
-                                                text=sprintf("breakdown: %s<br>value: %f", breakdown, value))) + 
-  geom_bar(stat="identity") +
-  ylim(0, NA) +
-  scale_fill_manual(values=breakdown_colors) +
-  labs(title="Time To Consistently Interactive — Mean Contributors", x="Cache Temperature", y="Seconds") +
-  facet_grid(is_cpu_time ~ .)
-ggplotly(plot_ci_warm_vs_cold, tooltip="text")
-
 # The spread operation below requires that we don't have duplicates in our input.
 assert_that(!any(duplicated(select(organized, cache_temperature, site, start, end, is_cpu_time, breakdown))), msg="Duplicate rows")
 
@@ -88,43 +72,53 @@ breakdowns_together <-
   spread(breakdown, value) 
 breakdowns_together[is.na(breakdowns_together)] <- 0
 
-breakdowns_together_ci <- breakdowns_together %>% 
-  filter(start == "Navigation", end == "Consistently Interactive") %>%
-  group_by(is_cpu_time, cache_temperature, start, end) %>%
-  mutate(quantiles = ntile(total, 10) * 10)
-
-by_quantiles <- breakdowns_together_ci %>% 
-  group_by(quantiles, cache_temperature, start, end, is_cpu_time) %>% 
-  dplyr::summarise_at(vars(-site), funs(mean(.)))
-
-by_quantiles_gathered <- by_quantiles %>% 
-  gather(breakdown, value, -cache_temperature, -quantiles, -start, -end, -is_cpu_time) %>%
-  filter(breakdown != "total")
-
-ci <- by_quantiles_gathered
-
-plot_ci <- ci %>% ggplot(aes(x=quantiles, y=value, fill=breakdown, 
-                             text=sprintf("breakdown: %s<br>value: %f", breakdown, value))) + 
-  geom_bar(stat="identity") +
-  scale_fill_manual(values=breakdown_colors) +
-  facet_grid(is_cpu_time ~ cache_temperature) +
-  labs(title = "Time To Consistently Interactive — Contributors by Quantile", x="Quantiles", y="Seconds")
-
-plot(plot_ci)
-
-ggplotly(plot_ci, tooltip="text")
-
-ci_normalized <- ci %>% group_by(quantiles, cache_temperature, is_cpu_time) %>% mutate(value=value/sum(value))
-plot_ci_normalized <- ci_normalized %>% ggplot(aes(x=quantiles, y=value, fill=breakdown, 
-                                                   text=sprintf("breakdown: %s<br>value: %f%%", breakdown, value*100))) + 
-  geom_bar(stat="identity") +
-  scale_fill_manual(values=breakdown_colors) +
-  facet_grid(is_cpu_time ~ cache_temperature) +
-  labs(title = "Time To Consistently Interactive — Normalized Contributors by Quantile", x="Quantiles", y="Percent of time spent")
-
-
-
-ggplotly(plot_ci_normalized, tooltip="text")
+get_endpoint_plots <- function(endpoint) {
+  plots <- c()
+  endpoint_df <- organized %>% filter(start=="Navigation", 
+                             end==endpoint, 
+                             breakdown != "total") 
+  endpoint_means <- endpoint_df %>% 
+    group_by(cache_temperature, breakdown, is_cpu_time) %>% 
+    dplyr::summarize(value=mean(value))
+  
+  plots$warm_vs_cold <- endpoint_means %>% ggplot(aes(x=cache_temperature, y=value, fill=breakdown, 
+                                                  text=sprintf("breakdown: %s<br>value: %f", breakdown, value))) + 
+    geom_bar(stat="identity") +
+    ylim(0, NA) +
+    scale_fill_manual(values=breakdown_colors) +
+    labs(title=sprintf("Time To %s — Mean Contributors", endpoint), x="Cache Temperature", y="Seconds") +
+    facet_grid(is_cpu_time ~ .)
+  
+  breakdowns_together_endpoint <- breakdowns_together %>% 
+    filter(start == "Navigation", end == endpoint) %>%
+    group_by(is_cpu_time, cache_temperature, start, end) %>%
+    mutate(quantiles = ntile(total, 10) * 10)
+  
+  by_quantiles_endpoint <- breakdowns_together_endpoint %>% 
+    group_by(quantiles, cache_temperature, start, end, is_cpu_time) %>% 
+    dplyr::summarise_at(vars(-site), funs(mean(.)))
+  
+  by_quantiles_gathered_endpoint <- by_quantiles_endpoint %>% 
+    gather(breakdown, value, -cache_temperature, -quantiles, -start, -end, -is_cpu_time) %>%
+    filter(breakdown != "total")
+  
+  plots$contributors_by_quantile <- by_quantiles_gathered_endpoint %>% ggplot(aes(x=quantiles, y=value, fill=breakdown, 
+                               text=sprintf("breakdown: %s<br>value: %f", breakdown, value))) + 
+    geom_bar(stat="identity") +
+    scale_fill_manual(values=breakdown_colors) +
+    facet_grid(is_cpu_time ~ cache_temperature) +
+    labs(title = sprintf("Time To %s— Contributors by Quantile", endpoint), x="Quantiles", y="Seconds")
+  
+  endpoint_normalized <- by_quantiles_gathered_endpoint %>% group_by(quantiles, cache_temperature, is_cpu_time) %>% mutate(value=value/sum(value))
+  plots$contributors_by_quantile_normalized <- endpoint_normalized %>% ggplot(aes(x=quantiles, y=value, fill=breakdown, 
+                                                     text=sprintf("breakdown: %s<br>value: %f%%", breakdown, value*100))) + 
+    geom_bar(stat="identity") +
+    scale_fill_manual(values=breakdown_colors) +
+    facet_grid(is_cpu_time ~ cache_temperature) +
+    labs(title = sprintf("Time To %s — Normalized Contributors by Quantile", endpoint), x="Quantiles", y="Percent of time spent")
+  
+  return(plots)
+}
 
 ## Broken down by important times.
 important_times <- breakdowns_together %>% filter(

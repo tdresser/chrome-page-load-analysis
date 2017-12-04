@@ -37,20 +37,45 @@ ggplotly(plot_totals_jitter_sampled +
         strip.text.y = element_text(size = 7)), tooltip="text")
 ```
 
-## Time To Consistently Interactive
-
-```{r echo=FALSE, warning=FALSE}
-ggplotly(plot_ci_warm_vs_cold, tooltip="text")
+```{r echo=FALSE}
+fcp_plots <- get_endpoint_plots("First Contentful Paint")
 ```
 
-## Time To Consistently Interactive | Quantiles
+## First Contentful Paint
+
 ```{r echo=FALSE, warning=FALSE}
-ggplotly(plot_ci, tooltip = "text")
+ggplotly(fcp_plots$warm_vs_cold, tooltip="text")
 ```
 
-## Time To Consistently Interactive | Normalized by quantiles
+## First Contentful Paint | Quantiles
 ```{r echo=FALSE, warning=FALSE}
-ggplotly(plot_ci_normalized, tooltip="text")
+ggplotly(fcp_plots$contributors_by_quantile, tooltip = "text")
+```
+
+## First Contentful Paint | Normalized by quantiles
+```{r echo=FALSE, warning=FALSE}
+ggplotly(fcp_plots$contributors_by_quantile_normalized, tooltip="text")
+```
+
+
+```{r echo=FALSE}
+ci_plots <- get_endpoint_plots("Consistently Interactive")
+```
+
+## Time To Interactive
+
+```{r echo=FALSE, warning=FALSE}
+ggplotly(ci_plots$warm_vs_cold, tooltip="text")
+```
+
+## Time To Interactive | Quantiles
+```{r echo=FALSE, warning=FALSE}
+ggplotly(ci_plots$contributors_by_quantile, tooltip = "text")
+```
+
+## Time To Interactive | Normalized by quantiles
+```{r echo=FALSE, warning=FALSE}
+ggplotly(ci_plots$contributors_by_quantile_normalized, tooltip="text")
 ```
 
 ## Important Timestamp Deltas
