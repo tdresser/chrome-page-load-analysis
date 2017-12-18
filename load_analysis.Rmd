@@ -1,7 +1,7 @@
 ---
 title: "Page Load Analysis"
 author: "tdresser@chromium.org, maxlg@chromium.org, dproy@chromium.org"
-date: "November 27, 2017"
+date: "December 18, 2017"
 output: 
   html_document:
     fig_width: 10
@@ -17,9 +17,10 @@ source('per_second.R')
 ```
 
 ## Gathering Data
-* Load the Alexa top 10k on Nexus 5's.
+* Load the Alexa top 10k on Nexus 5X's.
 * Simulate 3G network.
-* Both warm & cold Page loads.
+* Both cold, warm and hot Page loads.
+* Enable&diable Subresource Filter
 * Reasonably detailed main thread attribution.
 
 ## Overall Distribution
