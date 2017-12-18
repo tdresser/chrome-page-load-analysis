@@ -20,7 +20,7 @@ source('per_second.R')
 * Load the Alexa top 10k on Nexus 5X's.
 * Simulate 3G network.
 * Both cold, warm and hot Page loads.
-* Enable&diable Subresource Filter
+* Enable&disable Subresource Filter
 * Reasonably detailed main thread attribution.
 
 ## Overall Distribution
