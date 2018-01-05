@@ -31,14 +31,22 @@ gathered <- organized <- df %>%
   gather(key, value, -cache_temperature, -site, -subresource_filter)
 
 splitKey <- function(df) {
+  # perl & useBytes are supposed to speed this up.
   return(df %>% tidyr::extract_("key", c("start", "end", "is_cpu_time", "breakdown"),
-                                regex = "(.*)To(.*)Breakdown(CpuTime)?-(.*)", convert=TRUE, remove=TRUE))
+                                regex = "(.*)To(.*)Breakdown(CpuTime)?-(.*)", convert=TRUE, remove=TRUE, perl=TRUE, useBytes=TRUE))
 }
 
-print(system.time({tidied <- unsplit(mclapply(split(gathered, sample(1:20, nrow(gathered), replace=T)), splitKey))}))
+# This is slow, but I haven't figured out how to make it faster, other than parallelizing it.
+# Split into 20 groups, run the tidyr extract on each group as a separate thread, then merge.
+start <- proc.time()
+tidied <- bind_rows(mclapply(split(gathered, sample(1:20, nrow(gathered), replace=T)), splitKey))
+end <- proc.time()
+print("Time taken for column splitting")
+print(end - start)
 
+rm(gathered)
 
-tidied %>% mutate(start = factor(tolower(start), tolower(timestamps)),
+organized <- tidied %>% mutate(start = factor(tolower(start), tolower(timestamps)),
          end = factor(tolower(end), tolower(timestamps)),
          is_cpu_time = as.factor(!is.na(is_cpu_time)),
          subresource_filter = as.factor(subresource_filter),
@@ -47,6 +55,8 @@ tidied %>% mutate(start = factor(tolower(start), tolower(timestamps)),
          value = value / 1000) %>%
   filter(!is.na(value), value != 0) # We're currently filtering out most of the cold data here.
 
+rm(tidied)
+
 # Find cases where we're missing data for some sites, and completely remove those sites.
 # TODO - this doesn't work.
 num_occurrences_of_site <- organized %>%
@@ -54,8 +64,6 @@ num_occurrences_of_site <- organized %>%
   group_by(site) %>%
   mutate(count=n())
 #sites_to_drop <- num_occurrences_of_site[num_occurrences_of_site$count < max(num_occurrences_of_site$count),]
-
-
 
 
 levels(organized$cache_temperature) <- c("Warm", "Cold", "Hot")
