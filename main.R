@@ -59,10 +59,10 @@ rm(tidied)
 
 # Find cases where we're missing data for some sites, and completely remove those sites.
 # TODO - this doesn't work.
-num_occurrences_of_site <- organized %>%
-  select(site) %>%
-  group_by(site) %>%
-  mutate(count=n())
+#num_occurrences_of_site <- organized %>%
+#  select(site) %>%
+#  group_by(site) %>%
+#  mutate(count=n())
 #sites_to_drop <- num_occurrences_of_site[num_occurrences_of_site$count < max(num_occurrences_of_site$count),]
 
 
@@ -92,7 +92,7 @@ plot_totals_jitter <- totals %>%
 plot_totals_jitter
 
 # The spread operation below requires that we don't have duplicates in our input.
-assert_that(!any(duplicated(select(organized, cache_temperature, site, start, end, is_cpu_time, breakdown))), msg="Duplicate rows")
+assert_that(!any(duplicated(select(organized, site, cache_temperature, start, end, subresource_filter, is_cpu_time, breakdown))), msg="Duplicate rows")
 
 breakdowns_together <-
   organized %>%
