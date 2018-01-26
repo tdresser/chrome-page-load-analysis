@@ -78,7 +78,6 @@ levels(organized$start) <- friendly_timestamps
 levels(organized$end) <- friendly_timestamps
 levels(organized$is_cpu_time) <- c("Wall Clock Time", "CPU Time")
 organized$breakdown <- organized$breakdown %>% fct_relevel("idle")
-organized <- organized %>% mutate(is_network = grepl("blocked|Network", breakdown))
 
 totals <- organized %>% filter(breakdown == "total", start=="Navigation")
 
@@ -114,7 +113,7 @@ get_endpoint_plots <- function(endpoint) {
   endpoint_means <- endpoint_df %>%
     group_by(cache_temperature, breakdown, is_cpu_time, subresource_filter) %>%
     dplyr::summarize(value=mean(value))
-
+  
   plots$warm_vs_cold <- endpoint_means %>% ggplot(aes(x=cache_temperature, y=value, fill=breakdown,
                                                   text=sprintf("breakdown: %s<br>value: %f", breakdown, value))) +
     geom_bar(stat="identity") +
@@ -155,18 +154,12 @@ get_endpoint_plots <- function(endpoint) {
 }
 
 ## Broken down by important times.
-important_times <- breakdowns_together %>% filter(
-  start == 'Navigation' & end == 'First Paint' |
-    start == 'First Paint' & end == 'First Contentful Paint' |
-    start == 'First Contentful Paint' & end == 'First Meaningful Paint' |
-    start == 'First Meaningful Paint' & end == 'First Interactive' |
-    start == 'First Interactive' & end == 'Consistently Interactive') %>%
+important_times <- breakdowns_together %>% 
   group_by(start, end, cache_temperature, is_cpu_time, subresource_filter) %>%
   dplyr::summarise_at(vars(-site), funs(mean(.))) %>%
   gather(breakdown, value, -cache_temperature, -start, -is_cpu_time, -end, -subresource_filter)
 
 important_times <- important_times %>% filter(breakdown != "total")
-
 
 plot_important_times <- important_times %>% ggplot(aes(x=end, y=value, fill=breakdown, text=sprintf("breakdown: %s<br>value: %f", breakdown, value))) +
   geom_bar(stat="identity") +

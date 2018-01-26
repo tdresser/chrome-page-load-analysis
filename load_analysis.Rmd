@@ -95,34 +95,11 @@ We use a hierarchy to attribute time. Of the following, we attribute time to the
 * Main thread resource requests
 * Browser side resource requests
 
-Somehow, our CPU time is actually slightly higher for warm than cold loads in the mean. This implies that there's some negative correlation between the time spent fetching resources and the CPU time.
+Our CPU time slightly higher for warm than cold loads in the mean. This is because FCP itself is later, giving more time for CPU work.
 
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(fcp_plots$warm_vs_cold, tooltip="text")
 ```
-
-Here's a graph of the network vs non-network contribution to FCP.
-
-```{r echo=FALSE, warning=FALSE}
-split_by_is_network <- organized %>% 
-  filter(start == "Navigation", 
-         end == "First Contentful Paint", 
-         is_cpu_time == "Wall Clock Time", 
-         breakdown != "total", 
-         subresource_filter == "Subresource Filter Off") %>%
-  mutate(is_network = ifelse(is_network == "TRUE", "network", "non_network")) %>%
-  group_by(site, is_network, cache_temperature) %>% 
-  summarize(value = sum(value)) %>%
-  spread(key=is_network, value=value)
-
-split_by_is_network_plot <- ggplot(split_by_is_network, aes(x = network, y = non_network, text=site)) +
-  geom_point(alpha=0.1, size=1) +
-  facet_grid(. ~ cache_temperature) +
-  scale_x_log10() +
-  scale_y_log10()
-ggplotly(split_by_is_network_plot, tooltip="text")
-```
-
 
 ## First Contentful Paint | Quantiles
 ```{r echo=FALSE, warning=FALSE}
@@ -133,7 +110,6 @@ ggplotly(fcp_plots$contributors_by_quantile, tooltip = "text")
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(fcp_plots$contributors_by_quantile_normalized, tooltip="text")
 ```
-
 
 ```{r echo=FALSE}
 ci_plots <- get_endpoint_plots("Consistently Interactive")
