@@ -87,7 +87,6 @@ fcp_plots <- get_endpoint_plots("First Contentful Paint")
 In the mean, we're essentially solely blocked on resource requests.
 
 otherNetworkActivities refers to resource requests handled on the browser side. We need to figure out if we can split these out more.
-It isn't clear to me why the time spent fetching resources is lower in the hot case than the warm case.
 
 We use a hierarchy to attribute time. Of the following, we attribute time to the first activity present.
 
@@ -97,14 +96,20 @@ We use a hierarchy to attribute time. Of the following, we attribute time to the
 
 Our CPU time slightly higher for warm than cold loads in the mean. This is because FCP itself is later, giving more time for CPU work.
 
+From the breakdowns we do have, we can see that time spent fetching script and images dominates.
+
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(fcp_plots$warm_vs_cold, tooltip="text")
 ```
+
+Zooming into the CPU work shows that most time is spent executing script, and on "resource_loading". I'm not certain what that work is.
 
 ## First Contentful Paint | Quantiles
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(fcp_plots$contributors_by_quantile, tooltip = "text")
 ```
+
+The normalized data shows that the fraction of time spent per category is surprisingly consistent. Pages which are slower tend to have larger scripts, illustrated by both the time spent fetching and executing scripts increasing in those cases. Image loading is much more of an issue on the first load than subsequent loads.
 
 ## First Contentful Paint | Normalized by quantiles
 ```{r echo=FALSE, warning=FALSE}

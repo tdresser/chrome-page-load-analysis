@@ -95,7 +95,7 @@ plot_totals_jitter <- totals %>%
   scale_y_log10() +
   labs(title="Totals per point in time", x="\n\nCache temperature", y="Seconds\n")
 
-plot_totals_jitter_sampled
+# plot_totals_jitter_sampled
 
 # The spread operation below requires that we don't have duplicates in our input.
 assert_that(!any(duplicated(select(organized, site, cache_temperature, start, end, subresource_filter, is_cpu_time, breakdown))), msg="Duplicate rows")
@@ -134,13 +134,15 @@ get_endpoint_plots <- function(endpoint) {
   by_quantiles_gathered_endpoint <- by_quantiles_endpoint %>%
     gather(breakdown, value, -cache_temperature, -quantiles, -start, -end, -is_cpu_time, -subresource_filter) %>%
     filter(breakdown != "total")
+  
+  by_quantiles_gathered_endpoint$breakdown <- by_quantiles_gathered_endpoint$breakdown %>% fct_relevel("idle")
 
   plots$contributors_by_quantile <- by_quantiles_gathered_endpoint %>% ggplot(aes(x=quantiles, y=value, fill=breakdown,
                                text=sprintf("breakdown: %s<br>value: %f", breakdown, value))) +
     geom_bar(stat="identity") +
     scale_fill_manual(values=breakdown_colors) +
     facet_grid(is_cpu_time + subresource_filter ~ cache_temperature) +
-    labs(title = sprintf("Time To %s— Contributors by Quantile", endpoint), x="Quantiles", y="Seconds")
+    labs(title = sprintf("Time To %s — Contributors by Quantile", endpoint), x="Quantiles", y="Seconds")
 
   endpoint_normalized <- by_quantiles_gathered_endpoint %>% group_by(quantiles, cache_temperature, is_cpu_time, subresource_filter) %>% mutate(value=value/sum(value))
   plots$contributors_by_quantile_normalized <- endpoint_normalized %>% ggplot(aes(x=quantiles, y=value, fill=breakdown,
