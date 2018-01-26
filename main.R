@@ -19,10 +19,27 @@ df_sf_disabled <- read_csv('important_timestamps_sf_disabled.csv', col_types=col
   .default=col_number())) %>% mutate(subresource_filter = "Subresource Filter Off")
 
 df <- bind_rows(df_sf, df_sf_disabled)
+rm(df_sf, df_sf_disabled)
+
+# Remove unneeded columns:
+df <- df %>% select(cache_temperature, site, subresource_filter, matches("navToFirstPaint|navToFirstContentfulPaint|navToFirstMeaningfulPaint|navToFirstInteractive|navToConsistentlyInteractive"))
 
 # For some reason we get some duplicate data. Remove it.
 # TODO - we should remove this once this input data doesn't have duplicate entries.
 df <- df %>% distinct(site, cache_temperature, subresource_filter, .keep_all = TRUE)
+
+# Find cases where we're missing data for some sites, and completely remove those sites.
+
+num_occurrences_of_site <- df %>%
+   filter(!is.na(`navToConsistentlyInteractiveBreakdown-total`)) %>%
+   select(site) %>%
+   group_by(site) %>%
+   summarize(count=n())
+sites_to_keep <- num_occurrences_of_site[num_occurrences_of_site$count == max(num_occurrences_of_site$count),]
+df <- semi_join(df, sites_to_keep, by="site")
+
+# Now that we got rid of all the sites with missing data, we should be safe to replace NAs with 0.
+df <- df %>% mutate_all(funs(replace(., is.na(.), 0)))
 
 timestamps <- c('nav', 'firstPaint', 'firstContentfulPaint', 'firstMeaningfulPaint', 'firstInteractive', 'consistentlyInteractive')
 friendly_timestamps <- c('Navigation', 'First Paint', 'First Contentful Paint', 'First Meaningful Paint', 'First Interactive', 'Consistently Interactive')
@@ -53,18 +70,7 @@ organized <- tidied %>% mutate(start = factor(tolower(start), tolower(timestamps
          breakdown=as.factor(breakdown),
          site=as.factor(site),
          value = value / 1000) %>%
-  filter(!is.na(value), value != 0) # We're currently filtering out most of the cold data here.
-
-rm(tidied)
-
-# Find cases where we're missing data for some sites, and completely remove those sites.
-# TODO - this doesn't work.
-#num_occurrences_of_site <- organized %>%
-#  select(site) %>%
-#  group_by(site) %>%
-#  mutate(count=n())
-#sites_to_drop <- num_occurrences_of_site[num_occurrences_of_site$count < max(num_occurrences_of_site$count),]
-
+  filter(!is.na(value), value != 0)
 
 levels(organized$cache_temperature) <- c("Warm", "Cold", "Hot")
 organized$cache_temperature <- factor(organized$cache_temperature, levels=c("Cold", "Warm", "Hot"))
@@ -72,6 +78,7 @@ levels(organized$start) <- friendly_timestamps
 levels(organized$end) <- friendly_timestamps
 levels(organized$is_cpu_time) <- c("Wall Clock Time", "CPU Time")
 organized$breakdown <- organized$breakdown %>% fct_relevel("idle")
+organized <- organized %>% mutate(is_network = grepl("blocked|Network", breakdown))
 
 totals <- organized %>% filter(breakdown == "total", start=="Navigation")
 
@@ -89,7 +96,7 @@ plot_totals_jitter <- totals %>%
   scale_y_log10() +
   labs(title="Totals per point in time", x="\n\nCache temperature", y="Seconds\n")
 
-plot_totals_jitter
+plot_totals_jitter_sampled
 
 # The spread operation below requires that we don't have duplicates in our input.
 assert_that(!any(duplicated(select(organized, site, cache_temperature, start, end, subresource_filter, is_cpu_time, breakdown))), msg="Duplicate rows")
@@ -203,4 +210,5 @@ if(FALSE) {
   ggplotly(p)
 }
 
-
+# rm(df)
+save.image(file = ".RData.main")

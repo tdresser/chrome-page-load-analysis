@@ -12,7 +12,11 @@ output:
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
 options(scipen=10000)
 knitr::opts_knit$set(verbose=TRUE)
-source('main.R')
+library(plotly)
+library(tidyverse)
+library(DT)
+#source('main.R')
+load(".RData.main")
 #source('per_second.R')
 ```
 
@@ -25,17 +29,53 @@ source('main.R')
 
 ## Overall Distribution
 
+Each point represents one run on a specific site. In this aggregate view, it's difficult to see any difference between the subresource filter being on or off. The clean, low bands seen in most graphs appear to be pages which 404 in our page set.
+
 ```{r, echo=FALSE, warning=FALSE}
+
 plot_totals_jitter +
   theme(strip.text.x = element_text(size = 7),
         strip.text.y = element_text(size = 7))
 ```
 
 ## Overall Distribution (Sampled)
+We've included this view to make it easy to pick out sample sites which fall in various places in these distributions.
+
 ```{r, echo=FALSE, warning=FALSE}
 ggplotly(plot_totals_jitter_sampled +
   theme(strip.text.x = element_text(size = 7),
         strip.text.y = element_text(size = 7)), tooltip="text")
+```
+
+## Overall Distribution (Density)
+
+Turn lines on and off by clicking on them in the legend. It's interesting that the CPU graphs are generally pretty close to unimodal (apart from a lump at the bottom we believe to be 404 pages), but the wall time graphs are strongly multimodal.
+
+Selecting pairs which differ only between the subresource filter being on and off illustrates the difference, which is largest for Consistently Interactive.
+
+```{r, echo=FALSE}
+totals$interaction <- interaction(totals$cache_temperature, totals$is_cpu_time, totals$subresource_filter)
+plot_totals_density <- totals %>%
+  ggplot(aes(value, group = interaction, color=interaction, text=interaction)) +
+  geom_line(stat="density") +
+  facet_grid(end ~ .) +
+  scale_color_manual(values = colorRampPalette(brewer.pal(name="Set1", n = 8))(14)) +
+  scale_x_log10()
+
+ggplotly(plot_totals_density, tooltip="text")
+```
+
+Table for First Contentful Paint
+
+```{r, echo=FALSE}
+datatable(totals %>% 
+             filter(end == "First Contentful Paint") %>% 
+             group_by(cache_temperature, is_cpu_time, subresource_filter) %>% 
+             summarize(mean = mean(value), 
+                       percentile_90 = quantile(value, 0.9),
+                       percentile_99 = quantile(value, 0.99)),
+          rownames = FALSE,
+          options = list(pageLength=50))
 ```
 
 ```{r echo=FALSE}
@@ -44,9 +84,45 @@ fcp_plots <- get_endpoint_plots("First Contentful Paint")
 
 ## First Contentful Paint
 
+In the mean, we're essentially solely blocked on resource requests.
+
+otherNetworkActivities refers to resource requests handled on the browser side. We need to figure out if we can split these out more.
+It isn't clear to me why the time spent fetching resources is lower in the hot case than the warm case.
+
+We use a hierarchy to attribute time. Of the following, we attribute time to the first activity present.
+
+* Main thread tasks
+* Main thread resource requests
+* Browser side resource requests
+
+Somehow, our CPU time is actually slightly higher for warm than cold loads in the mean. This implies that there's some negative correlation between the time spent fetching resources and the CPU time.
+
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(fcp_plots$warm_vs_cold, tooltip="text")
 ```
+
+Here's a graph of the network vs non-network contribution to FCP.
+
+```{r echo=FALSE, warning=FALSE}
+split_by_is_network <- organized %>% 
+  filter(start == "Navigation", 
+         end == "First Contentful Paint", 
+         is_cpu_time == "Wall Clock Time", 
+         breakdown != "total", 
+         subresource_filter == "Subresource Filter Off") %>%
+  mutate(is_network = ifelse(is_network == "TRUE", "network", "non_network")) %>%
+  group_by(site, is_network, cache_temperature) %>% 
+  summarize(value = sum(value)) %>%
+  spread(key=is_network, value=value)
+
+split_by_is_network_plot <- ggplot(split_by_is_network, aes(x = network, y = non_network, text=site)) +
+  geom_point(alpha=0.1, size=1) +
+  facet_grid(. ~ cache_temperature) +
+  scale_x_log10() +
+  scale_y_log10()
+ggplotly(split_by_is_network_plot, tooltip="text")
+```
+
 
 ## First Contentful Paint | Quantiles
 ```{r echo=FALSE, warning=FALSE}
