@@ -77,16 +77,15 @@ organized$cache_temperature <- factor(organized$cache_temperature, levels=c("Col
 levels(organized$start) <- friendly_timestamps
 levels(organized$end) <- friendly_timestamps
 levels(organized$is_cpu_time) <- c("Wall Clock Time", "CPU Time")
-organized$breakdown <- organized$breakdown %>% fct_relevel("idle")
+organized$breakdown <- organized$breakdown %>% fct_relevel("idle", after=Inf)
 
 totals <- organized %>% filter(breakdown == "total", start=="Navigation")
 
 plot_totals_jitter_sampled <- totals %>% sample_frac(0.1) %>%
   ggplot(aes(cache_temperature, value, text=sprintf("site: %s<br>value: %f", site, value))) +
   geom_jitter(alpha=0.1, size=0.3) +
-  facet_grid(end ~ is_cpu_time + subresource_filter) +
-  scale_y_log10() +
-  labs(title="Totals per point in time", x="\n\nCache temperature", y="Seconds\n")
+  facet_grid(end ~ I(paste(as.character(is_cpu_time), as.character(subresource_filter), sep=" : "))) +
+  scale_y_log10() 
 
 plot_totals_jitter <- totals %>%
   ggplot(aes(cache_temperature, value, text=sprintf("site: %s<br>value: %f", site, value))) +
@@ -113,7 +112,7 @@ get_endpoint_plots <- function(endpoint) {
   endpoint_means <- endpoint_df %>%
     group_by(cache_temperature, breakdown, is_cpu_time, subresource_filter) %>%
     dplyr::summarize(value=mean(value))
-  
+
   plots$warm_vs_cold <- endpoint_means %>% ggplot(aes(x=cache_temperature, y=value, fill=breakdown,
                                                   text=sprintf("breakdown: %s<br>value: %f", breakdown, value))) +
     geom_bar(stat="identity") +
@@ -134,8 +133,8 @@ get_endpoint_plots <- function(endpoint) {
   by_quantiles_gathered_endpoint <- by_quantiles_endpoint %>%
     gather(breakdown, value, -cache_temperature, -quantiles, -start, -end, -is_cpu_time, -subresource_filter) %>%
     filter(breakdown != "total")
-  
-  by_quantiles_gathered_endpoint$breakdown <- by_quantiles_gathered_endpoint$breakdown %>% fct_relevel("idle")
+
+  by_quantiles_gathered_endpoint$breakdown <- by_quantiles_gathered_endpoint$breakdown %>% fct_relevel("idle", after=Inf)
 
   plots$contributors_by_quantile <- by_quantiles_gathered_endpoint %>% ggplot(aes(x=quantiles, y=value, fill=breakdown,
                                text=sprintf("breakdown: %s<br>value: %f", breakdown, value))) +
@@ -156,7 +155,7 @@ get_endpoint_plots <- function(endpoint) {
 }
 
 ## Broken down by important times.
-important_times <- breakdowns_together %>% 
+important_times <- breakdowns_together %>%
   group_by(start, end, cache_temperature, is_cpu_time, subresource_filter) %>%
   dplyr::summarise_at(vars(-site), funs(mean(.))) %>%
   gather(breakdown, value, -cache_temperature, -start, -is_cpu_time, -end, -subresource_filter)
@@ -171,39 +170,16 @@ plot_important_times <- important_times %>% ggplot(aes(x=end, y=value, fill=brea
 
 ggplotly(plot_important_times, tooltip="text")
 
-# Startup vs Total for TTCI
-if(FALSE) {
-  ttci_breakdown_comparisons <- breakdowns_together %>%
-    filter(start=="nav", end=="ConsistentlyInteractiveBreakdown")
+sites_ordered_by_tti <- organized %>% 
+  filter(end == "Consistently Interactive", 
+         breakdown == "total", 
+         cache_temperature == "Cold", 
+         subresource_filter == "Subresource Filter Off",
+         is_cpu_time == "Wall Clock Time") %>% 
+  select(site, value) %>% 
+  arrange(-value)
 
-  plot_ttci_startup_vs_rest <- ttci_breakdown_comparisons %>%
-    ggplot(aes(x=startup, y=total-startup, label=site, color=script_execute)) +
-    geom_point(alpha=1) +
-    facet_wrap(~cache_temperature) +
-    scale_x_log10() +
-    scale_y_log10() +
-    scale_color_continuous(trans="log10")
-  ggplotly(plot_ttci_startup_vs_rest)
-
-  # Total vs Script Execute for TTCI
-  plot_ttci_script_execute_vs_rest <- ttci_breakdown_comparisons %>%
-    ggplot(aes(x=script_execute, y=total-startup, label=site)) +
-    geom_point(alpha=0.2) +
-    facet_wrap(~cache_temperature) +
-    scale_x_log10() +
-    scale_y_log10()
-  ggplotly(plot_ttci_script_execute_vs_rest)
-
-
-  p <- ttci_breakdown_comparisons %>%
-    ggplot(aes(x=total, y=v8_runtime, label=site)) +
-    geom_point(alpha=0.2) +
-    facet_wrap(~cache_temperature) #+
-  #scale_x_log10() +
-  #scale_y_log10()
-  p
-  ggplotly(p)
-}
+save(sites_ordered_by_tti, file="sites_ordered_by_tti.RData")
 
 # rm(df)
 save.image(file = ".RData.main")

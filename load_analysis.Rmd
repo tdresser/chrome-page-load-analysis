@@ -15,9 +15,8 @@ knitr::opts_knit$set(verbose=TRUE)
 library(plotly)
 library(tidyverse)
 library(DT)
-#source('main.R')
+source('main.R')
 load(".RData.main")
-#source('per_second.R')
 ```
 
 ## Gathering Data
@@ -26,6 +25,10 @@ load(".RData.main")
 * Both cold, warm and hot Page loads.
 * Enable&disable Subresource Filter
 * Reasonably detailed main thread attribution.
+
+These are all measured using live sites. This is required to get ads to behave reasonably, though it introduces some variance between runs.
+
+We've excluded pages which didn't reach first Consistently Interactive across all tests.
 
 ## Overall Distribution
 
@@ -42,12 +45,20 @@ plot_totals_jitter +
 We've included this view to make it easy to pick out sample sites which fall in various places in these distributions.
 
 ```{r, echo=FALSE, warning=FALSE}
+
 ggplotly(plot_totals_jitter_sampled +
-  theme(strip.text.x = element_text(size = 7),
-        strip.text.y = element_text(size = 7)), tooltip="text")
+  labs(title="Totals per point in time<br>&nbsp;", x="&nbsp;<br>Cache temperature", y="Seconds<br>&nbsp;") +
+  theme(
+        strip.text.x = element_text(size = 7),
+        strip.text.y = element_text(size = 7),
+        strip.background = element_blank(),
+    ), 
+  tooltip="text") %>% layout(margin=list(b=60, l=60, t=60, r=60))
 ```
 
 ## Overall Distribution (Density)
+
+The x-axis here is the number of seconds taken to reach each key point in time. The y-axis is density: how common are values around this one?
 
 Turn lines on and off by clicking on them in the legend. It's interesting that the CPU graphs are generally pretty close to unimodal (apart from a lump at the bottom we believe to be 404 pages), but the wall time graphs are strongly multimodal.
 
@@ -102,7 +113,7 @@ From the breakdowns we do have, we can see that time spent fetching script and i
 ggplotly(fcp_plots$warm_vs_cold, tooltip="text")
 ```
 
-Zooming into the CPU work shows that most time is spent executing script, and on "resource_loading". I'm not certain what that work is.
+Zooming into the CPU work shows that most time is spent executing script, and on "resource_loading". I'm not certain what that work is. TODO
 
 ## First Contentful Paint | Quantiles
 ```{r echo=FALSE, warning=FALSE}
@@ -137,6 +148,9 @@ ggplotly(ci_plots$contributors_by_quantile_normalized, tooltip="text")
 ```
 
 ## Important Timestamp Deltas
+
+This shows the mean contribution per contributor per important timestamp. The first column is time from navigation start to first paint.
+
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(plot_important_times + 
            theme(strip.text.y = element_text(size = 7),
@@ -144,7 +158,28 @@ ggplotly(plot_important_times +
 ```
 
 ## Per Second Contributors
+
+This shows the mean contribution per contributor per important second.
+
 ```{r echo=FALSE, warning=FALSE}
-# ggplotly(plot_per_second, tooltip="text")
+source('per_second.R')
+load(".RData.per_second")
+ggplotly(plot_per_second, tooltip="text")
 ```
+
+Below is the mean contribution per contributor per important second, only for the worst 100 sites (measured by wall clock TTI, without the subresource filter, with a cold cache).
+
+Worst 100 sites.
+
+```{r echo=FALSE, warning=FALSE}
+ggplotly(plot_per_second_worst100, tooltip="text")
+```
+
+Worst 100 sites.
+
+```{r echo=FALSE, warning=FALSE}
+ggplotly(plot_per_second_best100, tooltip="text")
+```
+
+
 
