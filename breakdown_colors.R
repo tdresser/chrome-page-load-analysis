@@ -37,7 +37,7 @@ breakdown_colors <- c(
   "#494a61",
   "#b0bba2",
   "#742f3f",
-  "#4a8070",
+  "#bac2c0", # Idle.
   "#d1a7b7",
   "#3e472f",
   "#927267"

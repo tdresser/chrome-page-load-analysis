@@ -76,7 +76,7 @@ per_second_breakdowns <- function (per_second_breakdowns_together) {
     geom_bar(stat="identity") +
     scale_fill_manual(values=breakdown_colors) +
     facet_grid(~cache_temperature~is_cpu_time + subresource_filter) +
-    labs(title="Mean Contributors over time.", x="Time in Seconds", y="Seconds")
+    labs(x="&nbsp;<br>Time in Seconds", y="Seconds<br>&nbsp;")
   return(plot_per_second)  
 }
 

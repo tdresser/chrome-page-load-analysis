@@ -15,8 +15,15 @@ knitr::opts_knit$set(verbose=TRUE)
 library(plotly)
 library(tidyverse)
 library(DT)
-source('main.R')
+#source('main.R')
 load(".RData.main")
+
+theme_set(theme_grey() + theme(
+        strip.text.x = element_text(size = 7),
+        strip.text.y = element_text(size = 7),
+        strip.background = element_blank(),
+    ));
+
 ```
 
 ## Gathering Data
@@ -34,26 +41,23 @@ We've excluded pages which didn't reach first Consistently Interactive across al
 
 Each point represents one run on a specific site. In this aggregate view, it's difficult to see any difference between the subresource filter being on or off. The clean, low bands seen in most graphs appear to be pages which 404 in our page set.
 
+#### Totals per point in time.
+
 ```{r, echo=FALSE, warning=FALSE}
 
 plot_totals_jitter +
-  theme(strip.text.x = element_text(size = 7),
-        strip.text.y = element_text(size = 7))
+  labs(x="Cache Temperature", y="Seconds")
 ```
 
 ## Overall Distribution (Sampled)
 We've included this view to make it easy to pick out sample sites which fall in various places in these distributions.
 
-```{r, echo=FALSE, warning=FALSE}
+#### Totals per point in time.
 
+```{r, echo=FALSE, warning=FALSE}
 ggplotly(plot_totals_jitter_sampled +
-  labs(title="Totals per point in time<br>&nbsp;", x="&nbsp;<br>Cache temperature", y="Seconds<br>&nbsp;") +
-  theme(
-        strip.text.x = element_text(size = 7),
-        strip.text.y = element_text(size = 7),
-        strip.background = element_blank(),
-    ), 
-  tooltip="text") %>% layout(margin=list(b=60, l=60, t=60, r=60))
+  labs(x="&nbsp;<br>Cache temperature", y="Seconds<br>&nbsp;"),
+  tooltip="text") %>% layout(margin=list(b=80, l=80, r=80))
 ```
 
 ## Overall Distribution (Density)
@@ -71,9 +75,10 @@ plot_totals_density <- totals %>%
   geom_line(stat="density") +
   facet_grid(end ~ .) +
   scale_color_manual(values = colorRampPalette(brewer.pal(name="Set1", n = 8))(14)) +
-  scale_x_log10()
+  scale_x_log10() +
+  labs(x="&nbsp;<br>Seconds to reach Stage", y="Density<br>&nbsp;")
 
-ggplotly(plot_totals_density, tooltip="text")
+ggplotly(plot_totals_density, tooltip="text") %>% layout(margin=list(b=80, l=80, r=80))
 ```
 
 Table for First Contentful Paint
@@ -105,9 +110,11 @@ We use a hierarchy to attribute time. Of the following, we attribute time to the
 * Main thread resource requests
 * Browser side resource requests
 
-Our CPU time slightly higher for warm than cold loads in the mean. This is because FCP itself is later, giving more time for CPU work.
+Our CPU time is slightly higher for warm than cold loads in the mean. This is because FCP itself is later, giving more time for CPU work. TODO - this makes no sense?
 
 From the breakdowns we do have, we can see that time spent fetching script and images dominates.
+
+#### Time To First Contentful Paint — Mean Contributors
 
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(fcp_plots$warm_vs_cold, tooltip="text")
@@ -116,13 +123,17 @@ ggplotly(fcp_plots$warm_vs_cold, tooltip="text")
 Zooming into the CPU work shows that most time is spent executing script, and on "resource_loading". I'm not certain what that work is. TODO
 
 ## First Contentful Paint | Quantiles
+
+#### Time To First Contentful Paint — Normalized Contributors by Quantile
+
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(fcp_plots$contributors_by_quantile, tooltip = "text")
 ```
 
-The normalized data shows that the fraction of time spent per category is surprisingly consistent. Pages which are slower tend to have larger scripts, illustrated by both the time spent fetching and executing scripts increasing in those cases. Image loading is much more of an issue on the first load than subsequent loads.
-
 ## First Contentful Paint | Normalized by quantiles
+
+The normalized data shows that the fraction of time spent per category is surprisingly consistent. Image loading is much more of an issue on the first load than subsequent loads. Pages which are slower tend to have longer running scripts. It's interesting that the time spent fetching images and script is pretty constant for cold loads, but for script especially, there's a strong correlation between FCP and time spent fetching script in cold and warm loads. 
+
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(fcp_plots$contributors_by_quantile_normalized, tooltip="text")
 ```
@@ -133,23 +144,27 @@ ci_plots <- get_endpoint_plots("Consistently Interactive")
 
 ## Time To Interactive
 
+Mean contributions to Time to Interactive clearly show the impact of subresource filtering. The average time spent blocked on loading images dropped from 10.7 to 9.7 seconds. In the 90th percentile, there was a drop from 25.3 to 22.3 seconds here.
+
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(ci_plots$warm_vs_cold, tooltip="text")
 ```
 
 ## Time To Interactive | Quantiles
 ```{r echo=FALSE, warning=FALSE}
-ggplotly(ci_plots$contributors_by_quantile, tooltip = "text")
+ggplotly(ci_plots$contributors_by_quantile, tooltip = "text") %>% layout(margin=list(b=80, l=80, r=80))
 ```
 
 ## Time To Interactive | Normalized by quantiles
 ```{r echo=FALSE, warning=FALSE}
-ggplotly(ci_plots$contributors_by_quantile_normalized, tooltip="text")
+ggplotly(ci_plots$contributors_by_quantile_normalized, tooltip="text") %>% layout(margin=list(b=80, l=80, r=80))
 ```
 
 ## Important Timestamp Deltas
 
 This shows the mean contribution per contributor per important timestamp. The first column is time from navigation start to first paint.
+
+#### Mean Contributors between Key Timestamps
 
 ```{r echo=FALSE, warning=FALSE}
 ggplotly(plot_important_times + 
@@ -161,24 +176,26 @@ ggplotly(plot_important_times +
 
 This shows the mean contribution per contributor per important second.
 
+#### Mean Contributors over time
+
 ```{r echo=FALSE, warning=FALSE}
 source('per_second.R')
 load(".RData.per_second")
-ggplotly(plot_per_second, tooltip="text")
+ggplotly(plot_per_second, tooltip="text")  %>% layout(margin=list(b=80, l=80, r=80))
 ```
 
 Below is the mean contribution per contributor per important second, only for the worst 100 sites (measured by wall clock TTI, without the subresource filter, with a cold cache).
 
-Worst 100 sites.
+#### Mean Contributors over time (Worst 100 sites)
 
 ```{r echo=FALSE, warning=FALSE}
-ggplotly(plot_per_second_worst100, tooltip="text")
+ggplotly(plot_per_second_worst100, tooltip="text")  %>% layout(margin=list(b=80, l=80, r=80))
 ```
 
-Worst 100 sites.
+#### Mean Contributors over time (Best 100 sites)
 
 ```{r echo=FALSE, warning=FALSE}
-ggplotly(plot_per_second_best100, tooltip="text")
+ggplotly(plot_per_second_best100, tooltip="text")  %>% layout(margin=list(b=80, l=80, r=80))
 ```
 
 

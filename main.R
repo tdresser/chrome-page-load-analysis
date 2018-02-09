@@ -91,8 +91,7 @@ plot_totals_jitter <- totals %>%
   ggplot(aes(cache_temperature, value, text=sprintf("site: %s<br>value: %f", site, value))) +
   geom_jitter(alpha=0.1, size=0.3) +
   facet_grid(end ~ is_cpu_time + subresource_filter) +
-  scale_y_log10() +
-  labs(title="Totals per point in time", x="\n\nCache temperature", y="Seconds\n")
+  scale_y_log10()
 
 # plot_totals_jitter_sampled
 
@@ -118,7 +117,7 @@ get_endpoint_plots <- function(endpoint) {
     geom_bar(stat="identity") +
     ylim(0, NA) +
     scale_fill_manual(values=breakdown_colors) +
-    labs(title=sprintf("Time To %s — Mean Contributors", endpoint), x="Cache Temperature", y="Seconds") +
+    labs(x="&nbsp;<br>Cache Temperature", y="Seconds<br>&nbsp;") +
     facet_grid(is_cpu_time + subresource_filter ~ .)
 
   breakdowns_together_endpoint <- breakdowns_together %>%
@@ -141,7 +140,7 @@ get_endpoint_plots <- function(endpoint) {
     geom_bar(stat="identity") +
     scale_fill_manual(values=breakdown_colors) +
     facet_grid(is_cpu_time + subresource_filter ~ cache_temperature) +
-    labs(title = sprintf("Time To %s — Contributors by Quantile", endpoint), x="Quantiles", y="Seconds")
+    labs(x="&nbsp;<br>Quantiles", y="Seconds<br>&nbsp;")
 
   endpoint_normalized <- by_quantiles_gathered_endpoint %>% group_by(quantiles, cache_temperature, is_cpu_time, subresource_filter) %>% mutate(value=value/sum(value))
   plots$contributors_by_quantile_normalized <- endpoint_normalized %>% ggplot(aes(x=quantiles, y=value, fill=breakdown,
@@ -149,7 +148,7 @@ get_endpoint_plots <- function(endpoint) {
     geom_bar(stat="identity") +
     scale_fill_manual(values=breakdown_colors) +
     facet_grid(is_cpu_time + subresource_filter ~ cache_temperature) +
-    labs(title = sprintf("Time To %s — Normalized Contributors by Quantile", endpoint), x="Quantiles", y="Percent of time spent")
+    labs(x="&nbsp;<br>Quantiles", y="Percent of time spent<br>&nbsp;")
 
   return(plots)
 }
@@ -166,7 +165,7 @@ plot_important_times <- important_times %>% ggplot(aes(x=end, y=value, fill=brea
   geom_bar(stat="identity") +
   scale_fill_manual(values=breakdown_colors) +
   facet_grid(is_cpu_time + cache_temperature ~ subresource_filter) +
-  labs(title="Mean Contributors between Key Timestamps", x="End point", y="Seconds")
+  labs(x="&nbsp;<br>End point", y="Seconds<br>&nbsp;")
 
 ggplotly(plot_important_times, tooltip="text")
 
