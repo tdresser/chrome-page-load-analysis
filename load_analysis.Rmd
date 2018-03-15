@@ -1,7 +1,7 @@
 ---
 title: "Page Load Analysis"
 author: "tdresser@chromium.org, maxlg@chromium.org, dproy@chromium.org"
-date: "December 18, 2017"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output: 
   html_document:
     fig_width: 12
@@ -15,27 +15,24 @@ knitr::opts_knit$set(verbose=TRUE)
 library(plotly)
 library(tidyverse)
 library(DT)
-#source('main.R')
-load(".RData.main")
+source ('r_helpers/r_defaults.R')
+source ('r_helpers/r_helpers.R')
 
-theme_set(theme_grey() + theme(
-        strip.text.x = element_text(size = 7),
-        strip.text.y = element_text(size = 7),
-        strip.background = element_blank(),
-    ));
+# source('main.R')
+load(".RData.main")
 
 ```
 
 ## Gathering Data
 * Load the Alexa top 10k on Nexus 5X's.
 * Simulate 3G network.
-* Both cold, warm and hot Page loads.
-* Enable&disable Subresource Filter
-* Reasonably detailed main thread attribution.
+* Perform cold, warm and hot page loads.
+* Run with Subresource Filter enabled, and disabled.
+* Gather reasonably detailed main thread attribution.
 
-These are all measured using live sites. This is required to get ads to behave reasonably, though it introduces some variance between runs.
+All data is measured using live sites. This is required to get ads to behave reasonably, though it introduces some variance between runs.
 
-We've excluded pages which didn't reach first Consistently Interactive across all tests.
+We've excluded pages which didn't reach Time to Interactive across all tests.
 
 ## Overall Distribution
 
@@ -49,24 +46,21 @@ plot_totals_jitter +
   labs(x="Cache Temperature", y="Seconds")
 ```
 
-## Overall Distribution (Sampled)
 We've included this view to make it easy to pick out sample sites which fall in various places in these distributions.
 
-#### Totals per point in time.
+#### Totals per point in time (sampled)
 
 ```{r, echo=FALSE, warning=FALSE}
-ggplotly(plot_totals_jitter_sampled +
-  labs(x="&nbsp;<br>Cache temperature", y="Seconds<br>&nbsp;"),
-  tooltip="text") %>% layout(margin=list(b=80, l=80, r=80))
+myplotly(plot_totals_jitter_sampled + labs(x="Cache temperature", y="Seconds"))
 ```
-
-## Overall Distribution (Density)
 
 The x-axis here is the number of seconds taken to reach each key point in time. The y-axis is density: how common are values around this one?
 
 Turn lines on and off by clicking on them in the legend. It's interesting that the CPU graphs are generally pretty close to unimodal (apart from a lump at the bottom we believe to be 404 pages), but the wall time graphs are strongly multimodal.
 
-Selecting pairs which differ only between the subresource filter being on and off illustrates the difference, which is largest for Consistently Interactive.
+Selecting pairs which differ only between the subresource filter being on and off illustrates the difference, which is largest for Time to Interactive.
+
+#### Distribution per stage
 
 ```{r, echo=FALSE}
 totals$interaction <- interaction(totals$cache_temperature, totals$is_cpu_time, totals$subresource_filter)
@@ -76,12 +70,12 @@ plot_totals_density <- totals %>%
   facet_grid(end ~ .) +
   scale_color_manual(values = colorRampPalette(brewer.pal(name="Set1", n = 8))(14)) +
   scale_x_log10() +
-  labs(x="&nbsp;<br>Seconds to reach Stage", y="Density<br>&nbsp;")
+  labs(x="Seconds to reach Stage", y="Density")
 
-ggplotly(plot_totals_density, tooltip="text") %>% layout(margin=list(b=80, l=80, r=80))
+myplotly(plot_totals_density)
 ```
 
-Table for First Contentful Paint
+#### Table for First Contentful Paint
 
 ```{r, echo=FALSE}
 datatable(totals %>% 
@@ -91,7 +85,10 @@ datatable(totals %>%
                        percentile_90 = quantile(value, 0.9),
                        percentile_99 = quantile(value, 0.99)),
           rownames = FALSE,
-          options = list(pageLength=50))
+          options = list(pageLength=50)) %>% 
+  formatRound('mean', 2) %>%
+  formatRound('percentile_90', 2) %>%
+  formatRound('percentile_99', 2) 
 ```
 
 ```{r echo=FALSE}
@@ -117,29 +114,27 @@ From the breakdowns we do have, we can see that time spent fetching script and i
 #### Time To First Contentful Paint — Mean Contributors
 
 ```{r echo=FALSE, warning=FALSE}
-ggplotly(fcp_plots$warm_vs_cold, tooltip="text")
+myplotly(fcp_plots$warm_vs_cold) 
 ```
 
-Zooming into the CPU work shows that most time is spent executing script, and on "resource_loading". I'm not certain what that work is. TODO
+Zooming into the CPU work shows that most time is spent executing script, and on "resource_loading". This is work the main thread does to process resources. This is a lot more work than I anticipated!
 
-## First Contentful Paint | Quantiles
-
-#### Time To First Contentful Paint — Normalized Contributors by Quantile
+#### First Contentful Paint | Quantiles
 
 ```{r echo=FALSE, warning=FALSE}
-ggplotly(fcp_plots$contributors_by_quantile, tooltip = "text")
+myplotly(fcp_plots$contributors_by_quantile)
 ```
 
-## First Contentful Paint | Normalized by quantiles
+#### First Contentful Paint | Normalized by quantiles
 
 The normalized data shows that the fraction of time spent per category is surprisingly consistent. Image loading is much more of an issue on the first load than subsequent loads. Pages which are slower tend to have longer running scripts. It's interesting that the time spent fetching images and script is pretty constant for cold loads, but for script especially, there's a strong correlation between FCP and time spent fetching script in cold and warm loads. 
 
 ```{r echo=FALSE, warning=FALSE}
-ggplotly(fcp_plots$contributors_by_quantile_normalized, tooltip="text")
+myplotly(fcp_plots$contributors_by_quantile_normalized)
 ```
 
 ```{r echo=FALSE}
-ci_plots <- get_endpoint_plots("Consistently Interactive")
+ci_plots <- get_endpoint_plots("Interactive")
 ```
 
 ## Time To Interactive
@@ -147,17 +142,17 @@ ci_plots <- get_endpoint_plots("Consistently Interactive")
 Mean contributions to Time to Interactive clearly show the impact of subresource filtering. The average time spent blocked on loading images dropped from 10.7 to 9.7 seconds. In the 90th percentile, there was a drop from 25.3 to 22.3 seconds here.
 
 ```{r echo=FALSE, warning=FALSE}
-ggplotly(ci_plots$warm_vs_cold, tooltip="text")
+myplotly(ci_plots$warm_vs_cold)
 ```
 
 ## Time To Interactive | Quantiles
 ```{r echo=FALSE, warning=FALSE}
-ggplotly(ci_plots$contributors_by_quantile, tooltip = "text") %>% layout(margin=list(b=80, l=80, r=80))
+myplotly(ci_plots$contributors_by_quantile)
 ```
 
 ## Time To Interactive | Normalized by quantiles
 ```{r echo=FALSE, warning=FALSE}
-ggplotly(ci_plots$contributors_by_quantile_normalized, tooltip="text") %>% layout(margin=list(b=80, l=80, r=80))
+myplotly(ci_plots$contributors_by_quantile_normalized)
 ```
 
 ## Important Timestamp Deltas
@@ -167,9 +162,7 @@ This shows the mean contribution per contributor per important timestamp. The fi
 #### Mean Contributors between Key Timestamps
 
 ```{r echo=FALSE, warning=FALSE}
-ggplotly(plot_important_times + 
-           theme(strip.text.y = element_text(size = 7),
-                 axis.text.x = element_text(size = 6)), tooltip="text") 
+myplotly(plot_important_times)
 ```
 
 ## Per Second Contributors
@@ -179,9 +172,9 @@ This shows the mean contribution per contributor per important second.
 #### Mean Contributors over time
 
 ```{r echo=FALSE, warning=FALSE}
-source('per_second.R')
+#source('per_second.R')
 load(".RData.per_second")
-ggplotly(plot_per_second, tooltip="text")  %>% layout(margin=list(b=80, l=80, r=80))
+myplotly(plot_per_second)
 ```
 
 Below is the mean contribution per contributor per important second, only for the worst 100 sites (measured by wall clock TTI, without the subresource filter, with a cold cache).
@@ -189,13 +182,13 @@ Below is the mean contribution per contributor per important second, only for th
 #### Mean Contributors over time (Worst 100 sites)
 
 ```{r echo=FALSE, warning=FALSE}
-ggplotly(plot_per_second_worst100, tooltip="text")  %>% layout(margin=list(b=80, l=80, r=80))
+myplotly(plot_per_second_worst100)
 ```
 
 #### Mean Contributors over time (Best 100 sites)
 
 ```{r echo=FALSE, warning=FALSE}
-ggplotly(plot_per_second_best100, tooltip="text")  %>% layout(margin=list(b=80, l=80, r=80))
+myplotly(plot_per_second_best100)
 ```
 
 

@@ -42,7 +42,8 @@ df <- semi_join(df, sites_to_keep, by="site")
 df <- df %>% mutate_all(funs(replace(., is.na(.), 0)))
 
 timestamps <- c('nav', 'firstPaint', 'firstContentfulPaint', 'firstMeaningfulPaint', 'firstInteractive', 'consistentlyInteractive')
-friendly_timestamps <- c('Navigation', 'First Paint', 'First Contentful Paint', 'First Meaningful Paint', 'First Interactive', 'Consistently Interactive')
+friendly_timestamps <- c('Navigation', 'First Paint', 'First Contentful Paint', 'First Meaningful Paint', 'CPU Idle', 'Interactive')
+abbreviated_timestamps <- c('Nav', 'FP', 'FCP', 'FMP', 'CPU Idle', 'TTI')
 
 gathered <- organized <- df %>%
   gather(key, value, -cache_temperature, -site, -subresource_filter)
@@ -84,7 +85,7 @@ totals <- organized %>% filter(breakdown == "total", start=="Navigation")
 plot_totals_jitter_sampled <- totals %>% sample_frac(0.1) %>%
   ggplot(aes(cache_temperature, value, text=sprintf("site: %s<br>value: %f", site, value))) +
   geom_jitter(alpha=0.1, size=0.3) +
-  facet_grid(end ~ I(paste(as.character(is_cpu_time), as.character(subresource_filter), sep=" : "))) +
+  facet_grid(end ~ is_cpu_time + subresource_filter) +
   scale_y_log10() 
 
 plot_totals_jitter <- totals %>%
@@ -117,7 +118,7 @@ get_endpoint_plots <- function(endpoint) {
     geom_bar(stat="identity") +
     ylim(0, NA) +
     scale_fill_manual(values=breakdown_colors) +
-    labs(x="&nbsp;<br>Cache Temperature", y="Seconds<br>&nbsp;") +
+    labs(x="Cache Temperature", y="Seconds") +
     facet_grid(is_cpu_time + subresource_filter ~ .)
 
   breakdowns_together_endpoint <- breakdowns_together %>%
@@ -140,7 +141,7 @@ get_endpoint_plots <- function(endpoint) {
     geom_bar(stat="identity") +
     scale_fill_manual(values=breakdown_colors) +
     facet_grid(is_cpu_time + subresource_filter ~ cache_temperature) +
-    labs(x="&nbsp;<br>Quantiles", y="Seconds<br>&nbsp;")
+    labs(x="Quantiles", y="Seconds")
 
   endpoint_normalized <- by_quantiles_gathered_endpoint %>% group_by(quantiles, cache_temperature, is_cpu_time, subresource_filter) %>% mutate(value=value/sum(value))
   plots$contributors_by_quantile_normalized <- endpoint_normalized %>% ggplot(aes(x=quantiles, y=value, fill=breakdown,
@@ -148,7 +149,7 @@ get_endpoint_plots <- function(endpoint) {
     geom_bar(stat="identity") +
     scale_fill_manual(values=breakdown_colors) +
     facet_grid(is_cpu_time + subresource_filter ~ cache_temperature) +
-    labs(x="&nbsp;<br>Quantiles", y="Percent of time spent<br>&nbsp;")
+    labs(x="Quantiles", y="Percent of time spent")
 
   return(plots)
 }
@@ -161,16 +162,18 @@ important_times <- breakdowns_together %>%
 
 important_times <- important_times %>% filter(breakdown != "total")
 
+levels(important_times$end) <- abbreviated_timestamps
+
 plot_important_times <- important_times %>% ggplot(aes(x=end, y=value, fill=breakdown, text=sprintf("breakdown: %s<br>value: %f", breakdown, value))) +
   geom_bar(stat="identity") +
   scale_fill_manual(values=breakdown_colors) +
   facet_grid(is_cpu_time + cache_temperature ~ subresource_filter) +
-  labs(x="&nbsp;<br>End point", y="Seconds<br>&nbsp;")
+  labs(x="End point", y="Seconds")
 
 ggplotly(plot_important_times, tooltip="text")
 
 sites_ordered_by_tti <- organized %>% 
-  filter(end == "Consistently Interactive", 
+  filter(end == "Interactive", 
          breakdown == "total", 
          cache_temperature == "Cold", 
          subresource_filter == "Subresource Filter Off",
