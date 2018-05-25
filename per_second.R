@@ -8,21 +8,28 @@ source("breakdown_colors.R")
 
 options(scipen=10000)
 
-df_sf <- read_csv('per_second_sf.csv', col_types=cols(
-  site=col_character(),
-  cache_temperature=readr::col_factor(c("warm", "cold", "hot")),
-  .default=col_number())) %>% mutate(subresource_filter = "Subresource Filter On")
+per_second_df_temperatures <- read_csv('per_second2.csv', col_types=cols(
+  page_name=col_character(),
+  traceUrls=col_character(),
+  .default=col_number())) %>% mutate(subresource_filter = "Subresource Filter Off") %>%
+  select(site=page_name, everything())
 
-df_sf_disabled <- read_csv('per_second_sf_disabled.csv', col_types=cols(
-  site=col_character(),
-  cache_temperature=readr::col_factor(c("warm", "cold", "hot")),
-  .default=col_number())) %>% mutate(subresource_filter = "Subresource Filter Off")
+#df_sf_disabled <- read_csv('per_second_sf_disabled.csv', col_types=cols(
+#  site=col_character(),
+#  cache_temperature=readr::col_factor(c("warm", "cold", "hot")),
+#  .default=col_number())) %>% mutate(subresource_filter = "Subresource Filter Off")
 
-per_second_df <- bind_rows(df_sf, df_sf_disabled)
+#per_second_df <- bind_rows(df_sf, df_sf_disabled)
 #rm(df_sf, df_sf_disabled)
 
 # Only care about seconds from 1 to 30.
-per_second_df <- per_second_df %>% dplyr::select(site, cache_temperature, subresource_filter, dplyr::matches("nav[0-9]+secTo([0-9]|[1-2][0-9]|30)sec.*$"))
+per_second_df <- per_second_df_temperatures %>% 
+  dplyr::select(site, traceUrls, subresource_filter, dplyr::matches(".*nav[0-9]+secTo([0-9]|[1-2][0-9]|30)sec.*$")) %>%
+  gather(key="m", value="v", dplyr::matches(".*nav.*")) %>%
+  separate(m, c("cache_temperature", "m"), extra="merge") %>%
+  spread(m, v)  %>%
+  rename_all(. %>% gsub(" \\(ms\\)", "", .))
+  
 
 per_second_df$subresource_filter <- as.factor(per_second_df$subresource_filter)
 
@@ -40,11 +47,10 @@ sites_to_keep <- num_occurrences_of_site[num_occurrences_of_site$count == max(nu
 per_second_df <- semi_join(per_second_df, sites_to_keep, by="site")
 
 # Now that we got rid of all the sites with missing data, we should be safe to replace NAs with 0.
-per_second_df <- per_second_df %>% mutate_all(funs(replace(., is.na(.), 0)))
-
+per_second_df <- per_second_df %>% mutate_at(vars(matches('nav')), . %>% replace(., is.na(.), 0))
 
 per_second_organized <- per_second_df %>%
-  gather(key, value, -subresource_filter, -cache_temperature, -site) %>%
+  gather(key, value, -subresource_filter, -cache_temperature, -site, -traceUrls) %>%
   tidyr::extract("key", c("start", "end", "is_cpu_time", "breakdown"), 
                  regex = "nav([0-9]*)secTo([0-9]*)secBreakdown(CpuTime)?-(.*)", convert=TRUE, remove=TRUE, perl=TRUE, useBytes=TRUE) %>%
   mutate(breakdown=as.factor(breakdown), 
@@ -54,8 +60,8 @@ per_second_organized <- per_second_df %>%
          end=as.numeric(end),
          value = value / 1000)
 
-levels(per_second_organized$cache_temperature) <- c("Warm", "Cold", "Hot")
-per_second_organized$cache_temperature <- factor(per_second_organized$cache_temperature, levels=c("Cold", "Warm", "Hot"))
+per_second_organized$cache_temperature <- factor(per_second_organized$cache_temperature, levels=c("cold", "warm", "hot"))
+levels(per_second_organized$cache_temperature) <- c("Cold", "Warm", "Hot")
 levels(per_second_organized$is_cpu_time) <- c("Wall Clock Time", "CPU Time")
 
 per_second_breakdowns_together <- per_second_organized %>% 
