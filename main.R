@@ -8,21 +8,18 @@ source("breakdown_colors.R")
 options(scipen=10000)
 options(mc.cores = 45)
 
-df_sf <- read_csv('important_timestamps_sf.csv', col_types=cols(
-  site=col_character(),
-  cache_temperature=readr::col_factor(c("warm", "cold", "hot")),
-  .default=col_number())) %>% mutate(subresource_filter = "Subresource Filter On")
-
-df_sf_disabled <- read_csv('important_timestamps_sf_disabled.csv', col_types=cols(
-  site=col_character(),
-  cache_temperature=readr::col_factor(c("warm", "cold", "hot")),
-  .default=col_number())) %>% mutate(subresource_filter = "Subresource Filter Off")
-
-df <- bind_rows(df_sf, df_sf_disabled)
-rm(df_sf, df_sf_disabled)
+df_temperatures <- read_csv('per_second2.csv', col_types=cols(
+  page_name=col_character(),
+  traceUrls=col_character(),
+  .default=col_number())) %>% mutate(subresource_filter = "Subresource Filter Off") %>%
+  select(site=page_name, everything())
 
 # Remove unneeded columns:
-df <- df %>% select(cache_temperature, site, subresource_filter, matches("navToFirstPaint|navToFirstContentfulPaint|navToFirstMeaningfulPaint|navToFirstInteractive|navToConsistentlyInteractive"))
+df <- df_temperatures %>% select(site, subresource_filter, matches("navToFirstPaint|navToFirstContentfulPaint|navToFirstMeaningfulPaint|navToFirstInteractive|navToConsistentlyInteractive")) %>%
+  gather(key="m", value="v", dplyr::matches(".*nav.*")) %>%
+  separate(m, c("cache_temperature", "m"), extra="merge") %>%
+  spread(m, v)  %>%
+  rename_all(. %>% gsub(" \\(ms\\)", "", .))
 
 # For some reason we get some duplicate data. Remove it.
 # TODO - we should remove this once this input data doesn't have duplicate entries.
@@ -73,8 +70,9 @@ organized <- tidied %>% mutate(start = factor(tolower(start), tolower(timestamps
          value = value / 1000) %>%
   filter(!is.na(value), value != 0)
 
-levels(organized$cache_temperature) <- c("Warm", "Cold", "Hot")
-organized$cache_temperature <- factor(organized$cache_temperature, levels=c("Cold", "Warm", "Hot"))
+organized$cache_temperature <- factor(organized$cache_temperature, levels=c("cold", "warm", "hot"))
+levels(organized$cache_temperature) <- c("Cold", "Warm", "Hot")
+
 levels(organized$start) <- friendly_timestamps
 levels(organized$end) <- friendly_timestamps
 levels(organized$is_cpu_time) <- c("Wall Clock Time", "CPU Time")
